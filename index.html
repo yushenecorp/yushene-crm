@@ -1,0 +1,2004 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="禹盛客資">
+<title>禹盛開發客資系統</title>
+<style>
+:root{
+  --ink:#14181F; --ink-2:#3A424F; --ink-3:#6B7482;
+  --paper:#FAFAF8; --card:#FFFFFF; --line:#E5E4DF; --line-2:#F0EFEB;
+  --brass:#9C7A3C; --brass-soft:#F5EFE3;
+  --s-new:#B0761A;    --s-new-bg:#FBF1DE;
+  --s-track:#2B5C8A;  --s-track-bg:#E8F0F7;
+  --s-visit:#1E7A5A;  --s-visit-bg:#E4F2EC;
+  --s-close:#75798A;  --s-close-bg:#EFEFF2;
+  --danger:#A8322A;   --danger-bg:#FBEAE8;
+  --r:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Helvetica Neue",sans-serif;
+  background:var(--paper); color:var(--ink); min-height:100vh;
+  font-size:15px; line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+.hidden{display:none!important}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+
+/* ---------- 版式 ---------- */
+.wrap{max-width:940px;margin:0 auto;padding:0 16px}
+.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.hr{height:1px;background:var(--line);margin:20px 0}
+
+/* ---------- 登入 ---------- */
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-card{width:100%;max-width:380px}
+.mark{width:44px;height:44px;border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;margin-bottom:24px}
+.mark span{font-size:15px;font-weight:700;letter-spacing:.06em}
+.login-card h1{font-size:26px;font-weight:600;letter-spacing:-.01em;line-height:1.25}
+.login-card .sub{color:var(--ink-3);font-size:13px;margin-top:6px;margin-bottom:28px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:6px}
+.field input,.field select,.field textarea{
+  width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:var(--r);
+  background:var(--card);outline:none;transition:border-color .15s
+}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--ink)}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:11px 18px;border-radius:var(--r);font-weight:600;font-size:14px;
+  background:var(--ink);color:#fff;transition:opacity .15s
+}
+.btn:active{opacity:.8}
+.btn:disabled{opacity:.45;cursor:default}
+.btn-full{width:100%}
+.btn-ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn-sm{padding:7px 12px;font-size:13px;border-radius:8px}
+.msg{margin-top:12px;padding:10px 12px;border-radius:8px;font-size:13px}
+.msg-err{background:var(--danger-bg);color:var(--danger)}
+.msg-ok{background:var(--s-visit-bg);color:var(--s-visit)}
+
+/* ---------- 頂列 ---------- */
+.top{
+  position:sticky;top:0;z-index:20;background:rgba(250,250,248,.92);
+  backdrop-filter:saturate(180%) blur(12px);border-bottom:1px solid var(--line)
+}
+.top-in{max-width:940px;margin:0 auto;padding:11px 16px;display:flex;align-items:center;gap:12px}
+.top-case{font-weight:650;font-size:15px;letter-spacing:-.01em}
+.top-case small{display:block;font-size:11px;color:var(--ink-3);font-weight:500;letter-spacing:.04em}
+.top-sp{flex:1}
+.who{font-size:12px;color:var(--ink-3)}
+.icon-btn{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--ink-2)}
+.icon-btn:active{background:var(--line-2)}
+
+/* ---------- 分頁 ---------- */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.tab{padding:11px 14px;font-size:14px;font-weight:600;color:var(--ink-3);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.on{color:var(--ink);border-bottom-color:var(--ink)}
+
+/* ---------- 搜尋列 ---------- */
+.search-row{display:flex;gap:8px;margin:14px 0 10px}
+.search-row input{flex:1;padding:10px 13px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);outline:none}
+.search-row input:focus{border-color:var(--ink)}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.filters select{
+  padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);
+  font-size:13px;outline:none;max-width:150px
+}
+.filters select:focus{border-color:var(--ink)}
+.count{font-size:12px;color:var(--ink-3);margin-bottom:10px}
+
+/* ---------- 客戶卡 ---------- */
+.list{display:flex;flex-direction:column;gap:8px}
+.c-card{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:13px 15px;cursor:pointer;transition:border-color .12s
+}
+.c-card:hover{border-color:var(--ink-3)}
+.c-top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.c-name{font-weight:650;font-size:15px;letter-spacing:-.01em}
+.c-phone{font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.c-tags{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap}
+.tag{font-size:11px;font-weight:650;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.t-new{background:var(--s-new-bg);color:var(--s-new)}
+.t-track{background:var(--s-track-bg);color:var(--s-track)}
+.t-visit{background:var(--s-visit-bg);color:var(--s-visit)}
+.t-close{background:var(--s-close-bg);color:var(--s-close)}
+.t-back{background:#E4EEF9;color:#1F4E79}
+.t-deal{background:var(--s-visit-bg);color:var(--s-visit)}
+.t-grade{background:var(--brass-soft);color:var(--brass)}
+.t-warn{background:var(--danger-bg);color:var(--danger)}
+.c-meta{display:flex;gap:14px;flex-wrap:wrap;margin-top:7px;font-size:12px;color:var(--ink-3)}
+.c-meta b{font-weight:600;color:var(--ink-2)}
+.c-last{
+  margin-top:9px;padding-top:9px;border-top:1px dashed var(--line-2);
+  font-size:12.5px;color:var(--ink-2);line-height:1.55;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden
+}
+.c-last em{font-style:normal;color:var(--ink-3);margin-right:6px}
+.c-due{color:var(--danger);font-weight:600}
+
+/* ---------- 詳情 ---------- */
+.back{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--ink-3);font-weight:600;padding:12px 0}
+.d-head{margin-bottom:4px}
+.d-name{font-size:24px;font-weight:650;letter-spacing:-.02em}
+.d-phone{font-size:13px;color:var(--ink-3);font-variant-numeric:tabular-nums;margin-top:2px}
+.d-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.acts{display:flex;gap:8px;margin:16px 0}
+.acts .btn{flex:1}
+.sec{margin-top:20px}
+.sec-h{
+  display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-3);font-weight:700;margin-bottom:9px
+}
+.sec-h::after{content:'';flex:1;height:1px;background:var(--line)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.cell{background:var(--card);padding:9px 12px}
+.cell label{display:block;font-size:11px;color:var(--ink-3);margin-bottom:1px}
+.cell span{font-size:14px;font-weight:550}
+/* 時間軸 */
+.tl{position:relative;padding-left:18px}
+.tl::before{content:'';position:absolute;left:4px;top:6px;bottom:6px;width:1px;background:var(--line)}
+.ev{position:relative;padding:0 0 14px}
+.ev::before{content:'';position:absolute;left:-18px;top:6px;width:9px;height:9px;border-radius:50%;background:var(--card);border:2px solid var(--ink-3)}
+.ev.e-visit::before{border-color:var(--s-visit)}
+.ev.e-call::before{border-color:var(--s-track)}
+.ev-h{display:flex;align-items:baseline;gap:8px;cursor:pointer}
+.ev-t{font-size:12px;font-weight:700;padding:1px 7px;border-radius:5px;background:var(--line-2);color:var(--ink-2)}
+.ev.e-visit .ev-t{background:var(--s-visit-bg);color:var(--s-visit)}
+.ev.e-call .ev-t{background:var(--s-track-bg);color:var(--s-track)}
+.ev-d{font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.ev-w{font-size:12px;color:var(--ink-3)}
+.ev-b{font-size:13.5px;color:var(--ink-2);line-height:1.62;margin-top:5px;white-space:pre-wrap}
+.ev-b.fold{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ev-h{align-items:center}
+.ev-t,.ev-d,.ev-w{cursor:pointer}
+.ev-ed{font-size:11px;color:var(--brass);background:var(--brass-soft);padding:1px 7px;border-radius:20px;cursor:pointer;font-weight:650}
+.ev-btn{margin-left:auto;font-size:11.5px;color:var(--ink-3);border:1px solid var(--line);border-radius:6px;padding:3px 10px;background:var(--card);white-space:nowrap}
+.ev-btn:hover{border-color:var(--ink-3)}
+.trail{background:var(--line-2);border-radius:8px;padding:10px 12px;font-size:12.5px;line-height:1.7;color:var(--ink-2);white-space:pre-wrap;max-height:180px;overflow-y:auto}
+.ev-note{margin-top:6px;padding:7px 10px;background:var(--brass-soft);border-radius:7px;font-size:12.5px;color:#6B5220}
+.ev-note b{font-weight:700}
+.hist{background:var(--line-2);border-radius:var(--r);padding:12px 14px;font-size:13px;color:var(--ink-2);line-height:1.62;white-space:pre-wrap}
+
+/* ---------- 彈窗 ---------- */
+.mask{position:fixed;inset:0;background:rgba(20,24,31,.42);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--card);width:100%;max-width:560px;border-radius:16px 16px 0 0;max-height:92vh;overflow-y:auto;padding:20px 18px 26px}
+@media(min-width:640px){.mask{align-items:center}.sheet{border-radius:14px;max-height:88vh}}
+.sheet h2{font-size:18px;font-weight:650;letter-spacing:-.01em;margin-bottom:3px}
+.sheet .sub{font-size:12.5px;color:var(--ink-3);margin-bottom:18px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:520px){.two{grid-template-columns:1fr}}
+/* 對客資看板 */
+.rev-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0}
+.rev-bar input[type=date]{padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:var(--card);outline:none}
+.rev-bar label.chk{display:flex;align-items:center;gap:7px;font-size:13.5px;color:var(--ink-2);font-weight:500;margin:0;cursor:pointer}
+.rev-bar label.chk input{width:16px;height:16px;margin:0}
+.rng{padding:8px 15px;border:1px solid var(--line);border-radius:8px;background:var(--card);font-size:13px;font-weight:600;color:var(--ink-3)}
+.rng.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.rng-info{font-size:12px;color:var(--ink-3);margin-left:4px}
+.wx{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);font-size:13px;outline:none}
+.wx.hidden{display:none}
+.rg{margin-bottom:22px}
+.rg-h{display:flex;align-items:baseline;gap:10px;padding:10px 0 8px;border-bottom:2px solid var(--ink)}
+.rg-n{font-size:17px;font-weight:650;letter-spacing:-.01em}
+.rg-c{font-size:12px;color:var(--ink-3)}
+.rg-lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:700;margin:12px 0 7px}
+.rg-lbl-t{color:var(--s-visit)}
+.rc{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin-bottom:8px}
+.rc-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.rc-n{font-weight:650;font-size:14.5px;cursor:pointer;text-decoration:underline;text-decoration-color:var(--line)}
+.rc-p{font-size:12px;color:var(--ink-3)}
+.rc-r{font-size:11.5px;color:var(--s-track);background:var(--s-track-bg);padding:2px 8px;border-radius:20px}
+.rc textarea,.rc input[type=text]{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;line-height:1.6;outline:none;background:var(--paper)}
+.rc textarea:focus,.rc input:focus{border-color:var(--ink);background:var(--card)}
+.rc input[type=text]{margin-top:6px;font-size:13px}
+.rc-msg{font-size:11.5px;color:var(--ink-3);margin-top:4px;min-height:14px}
+.rc-meta{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--ink-3);margin-bottom:8px}
+.fbar{display:flex;align-items:center;gap:10px;background:var(--brass-soft);color:#6B5220;padding:8px 12px;border-radius:var(--r);font-size:12.5px;margin-bottom:10px;font-weight:600}
+.fclear{margin-left:auto;font-size:12px;color:#6B5220;border:1px solid rgba(156,122,60,.35);border-radius:6px;padding:3px 10px;background:transparent}
+.filters select.on{border-color:var(--ink);background:var(--ink);color:#fff;font-weight:650}
+#revWho{padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:var(--card);font-size:13px;outline:none}
+.rc-msg.ok{color:var(--s-visit)}
+.rc-msg.err{color:var(--danger)}
+.rf{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);margin-bottom:6px;cursor:pointer;font-size:13.5px}
+.rf:hover{border-color:var(--ink-3)}
+.rf-n{font-weight:600}
+.rf-m{font-size:12px;color:var(--ink-3)}
+.rf-d{margin-left:auto;font-size:12px;color:var(--ink-3)}
+.rf-d.od{color:var(--danger);font-weight:600}
+.rg-sum{display:flex;align-items:center;gap:8px;background:var(--line-2);border-radius:var(--r);padding:10px 14px;font-size:13px;color:var(--ink-2);margin-top:10px}
+.rg-sum b{font-weight:700;color:var(--ink)}
+.rg-go{margin-left:auto;font-size:12px;font-weight:600;color:var(--ink-2);border:1px solid var(--line);border-radius:7px;padding:4px 12px;background:var(--card)}
+.void-bar{background:var(--danger-bg);color:var(--danger);border-radius:var(--r);padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:12px}
+.d-head.voided .d-name{text-decoration:line-through;opacity:.6}
+.ev-void{opacity:.5}
+.ev-void .ev-b{text-decoration:line-through}
+.btn-danger{color:var(--danger);border-color:var(--danger-bg)}
+.e-visit{background:var(--s-visit-bg);color:var(--s-visit)}
+.e-back{background:#E4EEF9;color:#1F4E79}
+.e-call{background:var(--s-track-bg);color:var(--s-track)}
+.e-track{background:var(--line-2);color:var(--ink-3)}
+/* 報表 */
+.stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:14px}
+.stat-c{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;text-align:center}
+.stat-l{font-size:11.5px;color:var(--ink-3);margin-bottom:3px}
+.stat-v{font-size:24px;font-weight:650;letter-spacing:-.02em}
+.stat-s{font-size:11px;color:var(--ink-3);margin-top:2px}
+.cp{margin-bottom:8px}
+.cpx{margin-left:auto;font-size:11px;font-weight:600;color:var(--ink-3);border:1px solid var(--line);border-radius:6px;padding:3px 9px;background:var(--card);letter-spacing:0;text-transform:none}
+.rt{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:6px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.rt th{background:var(--line-2);padding:8px 10px;text-align:left;font-size:11.5px;font-weight:700;color:var(--ink-2);white-space:nowrap}
+.rt td{padding:8px 10px;border-top:1px solid var(--line-2);vertical-align:top}
+.rt td.z{color:var(--line)}
+.rt td.nt{font-size:12.5px;color:var(--ink-2);line-height:1.55;max-width:280px}
+.rt th:not(:first-child),.rt td:not(:first-child):not(.nt){text-align:center;font-variant-numeric:tabular-nums}
+.cbox-list{display:flex;flex-direction:column;gap:5px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);max-height:150px;overflow-y:auto}
+.cbox-list label.cbl{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:400;color:var(--ink);margin:0;cursor:pointer;padding:4px 0}
+.cbox-list label.cbl input{width:16px;height:16px;flex-shrink:0;margin:0}
+.cbox-list label.cbl b{font-weight:650}
+.cbl b{font-weight:650}
+/* 匯入預覽與說明 */
+.note-box{background:var(--brass-soft);border-radius:var(--r);padding:12px 14px;font-size:12.5px;color:#6B5220;line-height:1.7;margin-bottom:14px}
+.note-box .btn{margin-top:8px}
+.prev{border:1px solid var(--line);border-radius:var(--r);margin:10px 0;overflow:hidden}
+.prev-row{padding:8px 12px;border-bottom:1px solid var(--line-2);font-size:13px;background:var(--card)}
+.prev-row:last-child{border-bottom:none}
+.prev-row span{color:var(--ink-3);font-size:12px;margin-left:6px}
+.cbox-list input.ucase,.cbox-list input.pcase{width:16px;height:16px;flex-shrink:0;margin:0}
+/* 設定分頁 */
+.dlist,.ulist{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:16px}
+.drow{display:flex;align-items:center;gap:9px;padding:12px 14px;border-bottom:1px solid var(--line-2);cursor:pointer;background:var(--card)}
+.drow:last-child{border-bottom:none}
+.drow:hover{background:var(--line-2)}
+.dname{font-weight:600;font-size:14px}
+.dcount{margin-left:auto;font-size:12px;color:var(--ink-3)}
+.dgo{color:var(--ink-3);font-size:16px}
+.dtag{font-size:10.5px;font-weight:650;padding:2px 7px;border-radius:20px;background:var(--line-2);color:var(--ink-3)}
+.dtag-fix{background:var(--brass-soft);color:var(--brass)}
+.dtag-on{background:var(--s-track-bg);color:var(--s-track)}
+.dtag-off{background:var(--danger-bg);color:var(--danger)}
+.ditem{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.ditem input{flex:1;padding:8px 11px;border:1px solid var(--line);border-radius:8px;font-size:14px;outline:none;background:var(--card)}
+.ditem input:focus{border-color:var(--ink)}
+.ditem.off input{opacity:.5;text-decoration:line-through}
+.copy-x{font-size:12px;color:var(--ink-3);padding:6px 10px;border:1px solid var(--line);border-radius:7px;white-space:nowrap;background:var(--card)}
+.addrow{display:flex;gap:8px}
+.addrow input{flex:1;padding:9px 11px;border:1px solid var(--line);border-radius:8px;outline:none;background:var(--card)}
+.urow{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line-2);background:var(--card)}
+.urow:last-child{border-bottom:none}
+.urow.off{opacity:.55}
+.uinfo{font-size:14px}
+.uinfo .dtag{margin-left:5px}
+.uc{font-size:11.5px;color:var(--ink-3);margin-top:3px}
+.uops{margin-left:auto;display:flex;gap:6px;align-items:center}
+.uself{font-size:11.5px;color:var(--ink-3);padding:0 4px}
+.chks{display:flex;gap:20px;font-size:13.5px;padding-top:4px;flex-wrap:wrap}
+.field label.chkl{display:flex;align-items:center;gap:8px;font-weight:400;font-size:13.5px;color:var(--ink);margin:0;white-space:nowrap;cursor:pointer}
+.field label.chkl input{width:16px;height:16px;flex-shrink:0;margin:0}
+.field.wide{grid-column:1/-1}
+#cfgView textarea{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:var(--r);outline:none;font-family:ui-monospace,monospace;font-size:13px;line-height:1.6;background:var(--card)}
+#cfgView textarea:focus{border-color:var(--ink)}
+.sheet-acts{display:flex;gap:8px;margin-top:18px}
+.sheet-acts .btn{flex:1}
+.empty{text-align:center;padding:48px 20px;color:var(--ink-3);font-size:14px}
+.load{text-align:center;padding:40px;color:var(--ink-3);font-size:13px}
+/* 案場選擇 */
+.case-list{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.case-item{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .12s
+}
+.case-item:hover{border-color:var(--ink)}
+.case-item .n{font-weight:650;font-size:16px}
+.case-item .s{font-size:12px;color:var(--ink-3)}
+.case-item .go{margin-left:auto;color:var(--ink-3)}
+/* 建檔情境切換 */
+.segs{display:flex;gap:8px}
+.seg{flex:1;padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);font-size:14px;font-weight:600;color:var(--ink-3)}
+.seg.on{border-color:var(--ink);background:var(--ink);color:#fff}
+/* 相關聯絡人 */
+.ct-row{display:grid;grid-template-columns:1fr 80px 1.2fr 32px;gap:6px;margin-bottom:6px}
+.ct-row input{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;outline:none;min-width:0}
+.ct-row input:focus{border-color:var(--ink)}
+.ct-x{color:var(--ink-3);font-size:13px}
+.hint{font-size:12px;color:var(--ink-3);padding:6px 0}
+.d-contacts{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.d-contacts span{font-size:12px;color:var(--ink-3);background:var(--line-2);border-radius:6px;padding:3px 9px}
+/* 介紹戶別 */
+.units{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;max-height:190px;overflow-y:auto}
+.unit{padding:6px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);font-size:13px;color:var(--ink-2)}
+.unit.on{border-color:var(--brass);background:var(--brass-soft);color:var(--brass);font-weight:650}
+.req{color:var(--danger)}
+.dup{padding:9px 12px;border-radius:8px;font-size:13px;margin:-4px 0 12px;line-height:1.6}
+.dup b{display:block;font-weight:700;margin-bottom:2px}
+.dup .btn{margin-left:8px}
+.dup-block{background:var(--danger-bg);color:var(--danger)}
+.dup-warn{background:var(--s-new-bg);color:var(--s-new)}
+.dup-ok{background:var(--s-visit-bg);color:var(--s-visit)}
+.bulk{position:sticky;top:52px;z-index:10;display:flex;align-items:center;gap:8px;background:var(--ink);color:#fff;padding:9px 12px;border-radius:var(--r);margin-bottom:10px;font-size:13px;font-weight:600}
+.bulk select{padding:7px 12px;border-radius:7px;border:none;font-size:13px;margin-left:auto;background:var(--card);color:var(--ink);min-width:150px;font-weight:600}
+.bulk .btn-ghost{color:#fff;border-color:rgba(255,255,255,.4)}
+.c-card.has-sel{padding-left:40px;position:relative}
+.cbox{position:absolute;left:14px;top:15px;width:17px;height:17px;border:1.5px solid var(--line);border-radius:5px;background:var(--card)}
+.cbox.on{background:var(--ink);border-color:var(--ink)}
+.cbox.on::after{content:'✓';color:#fff;font-size:11px;position:absolute;left:3px;top:-1px}
+#impView textarea{font-family:ui-monospace,monospace;font-size:13px;line-height:1.6}
+</style>
+</head>
+<body>
+
+<!-- ===== 登入 ===== -->
+<div id="login">
+  <div class="login-card">
+    <div class="mark"><span>禹盛</span></div>
+    <h1>案場客戶管理</h1>
+    <div class="sub">禹盛開發股份有限公司</div>
+    <div class="field">
+      <label>帳號</label>
+      <input type="text" id="acc" autocomplete="username" autocapitalize="off">
+    </div>
+    <div class="field">
+      <label>密碼</label>
+      <input type="password" id="pwd" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn btn-full" id="loginBtn" onclick="doLogin()">登入</button>
+    <div id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- ===== 選案場 ===== -->
+<div id="picker" class="hidden">
+  <div class="top"><div class="top-in">
+    <div class="top-case">選擇案場<small id="pickWho"></small></div>
+    <div class="top-sp"></div>
+    <button class="btn btn-ghost btn-sm" onclick="logout()">登出</button>
+  </div></div>
+  <div class="wrap" style="padding-top:20px">
+    <div class="eyebrow">你可以進入的案場</div>
+    <div class="case-list" id="caseList"></div>
+  </div>
+</div>
+
+<!-- ===== 主畫面 ===== -->
+<div id="main" class="hidden">
+  <div class="top"><div class="top-in">
+    <div class="top-case"><span id="caseName"></span><small id="whoLine"></small></div>
+    <div class="top-sp"></div>
+    <button class="icon-btn" onclick="reload()" title="重新整理">↻</button>
+    <button class="btn btn-ghost btn-sm" onclick="backToPicker()">換案場</button>
+    <button class="btn btn-ghost btn-sm" onclick="logout()">登出</button>
+  </div></div>
+
+  <div class="wrap">
+    <!-- 列表 -->
+    <div id="listView">
+      <div class="tabs">
+        <div class="tab on" data-tab="all" onclick="setTab('all')">全部客戶</div>
+        <div class="tab" data-tab="due" onclick="setTab('due')">今日該追</div>
+        <div class="tab p-dis hidden" data-tab="pend" onclick="setTab('pend')">待派工<span id="pendN"></span></div>
+        <div class="tab p-all hidden" data-tab="imp" onclick="setTab('imp')">匯入名單</div>
+        <div class="tab p-all hidden" data-tab="rev" onclick="setTab('rev')">對客資</div>
+        <div class="tab" data-tab="rpt" onclick="setTab('rpt')">報表</div>
+        <div class="tab p-mgr hidden" data-tab="cfg" onclick="setTab('cfg')">設定</div>
+      </div>
+      <div class="search-row">
+        <input type="text" id="kw" placeholder="搜尋姓名、電話、紀錄內容…" oninput="render()">
+        <button class="btn btn-ghost p-dis hidden" id="selBtn" onclick="toggleSelMode()">批次改派</button>
+        <button class="btn" onclick="openNew()">＋ 建客戶</button>
+      </div>
+      <div class="filters" id="filters"></div>
+      <div class="fbar hidden" id="fbar"><span id="fbarTxt"></span><button class="fclear" onclick="clearFilters()">清除篩選</button></div>
+      <div id="listBody">
+        <div class="bulk hidden" id="bulkBar">
+          <span id="bulkN">已選 0 筆</span>
+          <select id="bulkWho"></select>
+          <button class="btn btn-sm" onclick="doBulk()">分派</button>
+          <button class="btn btn-sm btn-ghost" onclick="clearSel()">取消</button>
+        </div>
+        <div class="count" id="count"></div>
+        <div class="list" id="list"><div class="load">載入中…</div></div>
+      </div>
+      <div id="impView" class="hidden">
+        <div class="segs" style="margin:14px 0">
+          <button class="seg on" data-imp="quick" onclick="pickImp(this)">網路名單（一筆一筆建）</button>
+          <button class="seg p-dis hidden" data-imp="bulk" onclick="pickImp(this)">舊名單（批次匯入）</button>
+        </div>
+
+        <div id="impQuick">
+          <div class="sec-h">建立網路名單</div>
+          <div class="two">
+            <div class="field"><label>姓名 <span class="req">*</span></label><input type="text" id="qName"></div>
+            <div class="field"><label>電話 <span class="req">*</span></label><input type="tel" id="qPhone" oninput="qDup()"></div>
+          </div>
+          <div id="qDupBox"></div>
+          <div class="two">
+            <div class="field"><label>來源（媒體）<span class="req">*</span></label><select id="qMedia"></select></div>
+            <div class="field"><label>居住區域</label><select id="qArea"></select></div>
+            <div class="field"><label>購屋用途</label><select id="qMotive"></select></div>
+            <div class="field p-dis hidden"><label>指派給</label><select id="qOwner"></select></div>
+          </div>
+          <div class="field"><label>備註</label>
+            <input type="text" id="qNote" placeholder="方便聯絡時間、客戶說的話…（會寫進歷史背景）">
+          </div>
+          <button class="btn" onclick="qSave()">建立並繼續下一筆</button>
+          <div id="qMsg"></div>
+          <div class="hint" id="qCount"></div>
+        </div>
+
+        <div id="impBulk" class="hidden">
+          <div class="sec-h">舊名單批次匯入</div>
+          <div class="note-box">
+            只有「客戶姓名」「主要電話」是必要欄位，其餘有就填、沒有就空。<br>
+            欄位順序不拘，系統照標題名稱對應。<b>沒認得的欄位會自動併入歷史背景，不會遺失。</b>
+            <button class="btn btn-sm btn-ghost" onclick="dlTpl()">↓ 下載範本</button>
+          </div>
+          <div class="field"><label>選擇 CSV 檔</label><input type="file" id="bulkFile" accept=".csv,.txt" onchange="readCsv(this)"></div>
+          <div class="field"><label>或直接貼上（含標題列）</label>
+            <textarea id="bulkText" rows="8" placeholder="客戶姓名,主要電話,居住區域,媒體來源,購屋用途&#10;王先生,0912345678,南屯區,POP,自住"></textarea>
+          </div>
+          <button class="btn btn-ghost" onclick="previewBulk()">預覽</button>
+          <div id="bulkPrev"></div>
+        </div>
+      </div>
+
+      <div id="cfgView" class="hidden">
+        <div class="segs" style="margin:14px 0">
+          <button class="seg on" data-cfg="dict" onclick="pickCfg(this)">選項字典</button>
+          <button class="seg" data-cfg="case" onclick="pickCfg(this)">案場設定</button>
+          <button class="seg" data-cfg="user" onclick="pickCfg(this)">帳號管理</button>
+          <button class="seg" data-cfg="mgr" onclick="pickCfg(this)">案場管理</button>
+          <button class="seg" data-cfg="exp" onclick="pickCfg(this)">客資整合下載</button>
+        </div>
+        <div id="cfgDict"><div class="load">載入中…</div></div>
+        <div id="cfgCase" class="hidden"></div>
+        <div id="cfgUser" class="hidden"></div>
+        <div id="cfgMgr" class="hidden"></div>
+        <div id="cfgExp" class="hidden"></div>
+      </div>
+
+      <div id="revView" class="hidden">
+        <div class="rev-bar">
+          <input type="date" id="revDate" onchange="loadReview()">
+          <select id="revWho" onchange="drawReview()"><option value="">全部業務</option></select>
+
+          <button class="btn btn-sm btn-ghost" onclick="loadReview()">重新整理</button>
+        </div>
+        <div id="revBody"><div class="load">載入中…</div></div>
+      </div>
+
+      <div id="rptView" class="hidden">
+        <div class="rev-bar">
+          <button class="rng on" data-r="today" onclick="pickRng(this)">本日</button>
+          <button class="rng" data-r="week" onclick="pickRng(this)">本週</button>
+          <button class="rng" data-r="month" onclick="pickRng(this)">本月</button>
+          <button class="rng" data-r="all" onclick="pickRng(this)">全案</button>
+          <select id="rptWx" class="wx"><option value="">天氣</option><option>晴</option><option>陰</option><option>雨</option><option>陰雨</option><option>陰時多雲</option></select>
+          <span class="rng-info" id="rngInfo"></span>
+        </div>
+        <div id="rptBody"><div class="load">載入中…</div></div>
+      </div>
+    </div>
+
+    <!-- 詳情 -->
+    <div id="detailView" class="hidden">
+      <div class="back" onclick="closeDetail()">← 返回列表</div>
+      <div id="detail"></div>
+    </div>
+  </div>
+</div>
+
+<div id="modal"></div>
+
+<script>
+// ===================== 案場管理 =====================
+function caseChecks(){
+  var list=S.allCases&&S.allCases.length?S.allCases:S.cases;
+  return '<label class="cbl"><input type="checkbox" id="uAll" onchange="toggleAllCase(this)"> <b>全部案場</b>（含未來新增）</label>'+
+    list.map(function(c){
+      return '<label class="cbl"><input type="checkbox" class="ucase" value="'+esc(c.code)+'"> '+esc(c.name)+'</label>';
+    }).join('');
+}
+function toggleAllCase(el){
+  document.querySelectorAll('.ucase').forEach(function(e){ e.disabled=el.checked; if(el.checked) e.checked=false; });
+}
+function collectCases(){
+  if($('uAll') && $('uAll').checked) return '全部';
+  var a=[];
+  document.querySelectorAll('.ucase:checked').forEach(function(e){ a.push(e.value); });
+  return a.join(',');
+}
+function loadCases(){
+  $('cfgMgr').innerHTML='<div class="load">載入中…</div>';
+  api({action:'caseList'}).then(function(r){
+    if(!r.ok){ $('cfgMgr').innerHTML='<div class="empty">'+esc(r.error||'')+'</div>'; return; }
+    S.allCases=r.cases;
+    $('cfgMgr').innerHTML=
+      '<div class="ulist">'+r.cases.map(function(c){
+        return '<div class="urow"><div class="uinfo"><b>'+esc(c.name)+'</b>'+
+          '<span class="dtag">'+esc(c.code)+'</span>'+
+          '<span class="dtag'+(c.status==='銷售中'?' dtag-on':'')+'">'+esc(c.status||'')+'</span>'+
+          '<div class="uc">'+c.clients+' 位客戶</div></div>'+
+          '<div class="uops"><a class="copy-x" href="https://docs.google.com/spreadsheets/d/'+c.id+'/edit" target="_blank">開試算表</a></div>'+
+        '</div>';
+      }).join('')+'</div>'+
+      '<div class="sec-h">新增案場</div>'+
+      '<div class="note-box">建立後系統會自動產生一份新試算表，並複製你選的案場字典設定（區域、媒體、職業等 130 個選項），不用重打。建立完到「案場設定」改案名、戶別清單、追蹤天數就能用。</div>'+
+      '<div class="two">'+
+        '<div class="field"><label>案名 <span class="req">*</span></label><input type="text" id="ncName" placeholder="例：禹盛大境"></div>'+
+        '<div class="field"><label>案場代碼 <span class="req">*</span></label><input type="text" id="ncCode" placeholder="2-10 碼英數，例：YSDJ"></div>'+
+        '<div class="field"><label>案件類型</label><select id="ncType">'+opts('案件類型','','')+'</select></div>'+
+        '<div class="field"><label>字典複製自</label><select id="ncFrom">'+
+          r.cases.map(function(c){ return '<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>'; }).join('')+
+        '</select></div>'+
+      '</div>'+
+      '<button class="btn" onclick="caseAdd()">建立案場</button><div id="ncMsg"></div>';
+  });
+}
+function caseAdd(){
+  var name=$('ncName').value.trim(), code=$('ncCode').value.trim().toUpperCase();
+  if(!name||!code){ alert('請填寫案名與案場代碼'); return; }
+  if(!confirm('要建立案場「'+name+'」（代碼 '+code+'）？\n\n系統會產生新的試算表並複製字典設定。')) return;
+  $('ncMsg').innerHTML='<div class="msg">建立中…請稍候</div>';
+  api({action:'caseAdd',name:name,code:code,type:$('ncType').value,copyFrom:$('ncFrom').value}).then(function(r){
+    if(!r.ok){ $('ncMsg').innerHTML='<div class="msg msg-err">'+esc(r.error||'')+'</div>'; return; }
+    $('ncMsg').innerHTML='<div class="msg msg-ok">已建立「'+esc(r.name)+'」。重新登入後就能在案場清單看到。</div>';
+    $('ncName').value=''; $('ncCode').value='';
+    loadCases();
+  });
+}
+
+// ===================== 客資整合下載 =====================
+function drawExport(){
+  $('cfgExp').innerHTML=
+    '<div class="note-box">下載本案完整客戶資料，每位客戶一列，最後一欄是他所有互動紀錄串起來的<b>完整歷程</b>。<br>'+
+    '用 Excel 打開就是完整的一份，可以交案、備份、或給建商。</div>'+
+    '<div class="two">'+
+      '<div class="field"><label>業務（不選＝全部）</label><select id="exOwner"><option value="">全部業務</option>'+
+        staffList().map(function(n){return '<option>'+esc(n)+'</option>';}).join('')+'</select></div>'+
+      '<div class="field"><label>階段（不選＝全部）</label><select id="exStage">'+opts('客戶階段','','全部階段')+'</select></div>'+
+    '</div>'+
+    '<div class="field"><label>格式</label><div class="segs">'+
+      '<button class="seg on" data-ex="csv" onclick="pickEx(this)">CSV（Excel 可開）</button>'+
+      '<button class="seg" data-ex="txt" onclick="pickEx(this)">純文字（好閱讀）</button>'+
+    '</div></div>'+
+    '<button class="btn" onclick="doExport()">產生並下載</button>'+
+    '<div id="exMsg"></div>';
+  S.exFmt='csv';
+}
+function pickEx(el){
+  document.querySelectorAll('#cfgExp .seg').forEach(function(e){ e.classList.toggle('on', e===el); });
+  S.exFmt=el.dataset.ex;
+}
+function csvCell(v){
+  var s=String(v==null?'':v);
+  return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+}
+function doExport(){
+  $('exMsg').innerHTML='<div class="msg">產生中…資料多的話要等幾秒</div>';
+  api({action:'exportAll',owner:$('exOwner').value,stage:$('exStage').value}).then(function(r){
+    if(!r.ok){ $('exMsg').innerHTML='<div class="msg msg-err">'+esc(r.error||'產生失敗')+'</div>'; return; }
+    var 檔名=(r.案名||'客戶資料')+'_'+r.產生時間.replace(/[-: ]/g,'').slice(0,12);
+    var blob, ext;
+    if(S.exFmt==='csv'){
+      var lines=[r.headers.map(csvCell).join(',')];
+      r.rows.forEach(function(o){ lines.push(r.headers.map(function(k){return csvCell(o[k]);}).join(',')); });
+      blob=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+      ext='.csv';
+    } else {
+      var t=['【'+(r.案名||'')+'】客戶資料　產生於 '+r.產生時間,'共 '+r.rows.length+' 位客戶','',''].join('\n');
+      r.rows.forEach(function(o,i){
+        t+='━━━ '+(i+1)+'. '+(o['客戶姓名']||'未填姓名')+'　'+(o['主要電話']||'')+' ━━━\n';
+        r.headers.forEach(function(k){
+          if(k==='完整歷程'||k==='客戶姓名'||k==='主要電話') return;
+          if(o[k]==null||String(o[k]).trim()==='') return;
+          t+='  '+k+'：'+o[k]+'\n';
+        });
+        if(o['完整歷程']) t+='\n  【互動歷程】\n'+String(o['完整歷程']).split('\n').map(function(x){return '  '+x;}).join('\n')+'\n';
+        t+='\n';
+      });
+      blob=new Blob([t],{type:'text/plain;charset=utf-8'});
+      ext='.txt';
+    }
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=檔名+ext;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1000);
+    $('exMsg').innerHTML='<div class="msg msg-ok">已下載 '+r.rows.length+' 位客戶（'+r.headers.length+' 欄）</div>';
+  });
+}
+
+// ===================== 對客資看板 =====================
+function loadReview(){
+  var d=$('revDate');
+  if(!d.value) d.value=today();
+  $('revBody').innerHTML='<div class="load">載入中…</div>';
+  api({action:'review',date:d.value}).then(function(r){
+    if(!r.ok){ $('revBody').innerHTML='<div class="empty">'+esc(r.error||'載入失敗')+'</div>'; return; }
+    S.rev=r;
+    drawReview();
+  });
+}
+function drawReview(){
+  var r=S.rev;
+  if(!r.groups.length){ $('revBody').innerHTML='<div class="empty">這天沒有需要討論的資料</div>'; return; }
+  // 業務下拉（只建一次）
+  var sw=$('revWho');
+  if(sw && sw.options.length<=1){
+    sw.innerHTML='<option value="">全部業務</option>'+
+      r.groups.map(function(g){return '<option>'+esc(g.name)+'</option>';}).join('');
+  }
+  var only=sw?sw.value:'';
+  var gs=only? r.groups.filter(function(g){return g.name===only;}) : r.groups;
+  if(!gs.length){ $('revBody').innerHTML='<div class="empty">這位業務今天沒有資料</div>'; return; }
+  $('revBody').innerHTML=gs.map(function(g,gi){
+    return '<div class="rg">'+
+      '<div class="rg-h"><span class="rg-n">'+esc(g.name)+'</span>'+
+        '<span class="rg-c">今日 '+g.today.length+' 組・追蹤中 '+g.followTotal+' 組</span></div>'+
+      (g.today.length?
+        '<div class="rg-lbl rg-lbl-t">今日到場與聯繫</div>'+
+        g.today.map(function(x,i){ return todayCard(gi,i,x); }).join('') : '')+
+      (g.followTotal?
+        '<div class="rg-sum">追蹤狀況　該追 <b>'+g.followTotal+'</b> 組'+
+        (g.oldest?'・最久 <b>'+g.oldest+'</b> 天沒動':'')+
+        '<button class="rg-go" onclick="goDue(\''+esc(g.name)+'\')">看清單</button></div>' : '')+
+    '</div>';
+  }).join('');
+}
+function goDue(who){
+  setTab('due');
+  var e=$('fOwner'); if(e){ e.value=who; }
+  render();
+}
+function typeCls(t){
+  if(t==='來人') return 'e-visit';
+  if(t==='回訪') return 'e-back';
+  if(t==='來電') return 'e-call';
+  return 'e-track';
+}
+function todayCard(gi,i,x){
+  var id='rv_'+gi+'_'+i;
+  return '<div class="rc">'+
+    '<div class="rc-h">'+
+      '<span class="tag '+typeCls(x.type)+'">'+esc(x.type)+'</span>'+
+      '<span class="rc-n" onclick="openDetail(\'' + x.cid + '\')">'+esc(x.name||'未填姓名')+'</span>'+
+      '<span class="rc-p">'+esc(x.phone)+'</span>'+
+      (x.result?'<span class="rc-r">'+esc(x.result)+'</span>':'')+
+      (x.grade?'<span class="tag t-grade">'+esc(x.grade)+'</span>':'')+
+      (x.back>0?'<span class="tag t-back">回訪'+x.back+'次</span>':'')+
+      (x.deal&&x.deal!=='未成交'?'<span class="tag t-deal">'+esc(x.deal)+'</span>':'')+
+    '</div>'+
+    '<div class="rc-meta">'+
+      [x.area&&('區域 '+x.area), x.media&&('媒體 '+x.media), x.motive&&('用途 '+x.motive),
+       x.budget&&('預算 '+x.budget), x.unit&&('戶別 '+x.unit)]
+      .filter(Boolean).map(function(t){return '<span>'+esc(t)+'</span>';}).join('')+
+    '</div>'+
+    '<textarea id="'+id+'_n" rows="2" onblur="saveEv(\'' + x.eid + '\',\'' + id + '\')">'+esc(x.note)+'</textarea>'+
+    '<input type="text" id="'+id+'_b" placeholder="櫃檯指示（選填）" value="'+esc(x.boss)+'" onblur="saveEv(\'' + x.eid + '\',\'' + id + '\')">'+
+    '<div class="rc-msg" id="'+id+'_m"></div>'+
+  '</div>';
+}
+function followRow(x){
+  var od = x.due && x.due<=today();
+  return '<div class="rf" onclick="openDetail(\'' + x.cid + '\')">'+
+    '<span class="rf-n">'+esc(x.name||'未填姓名')+'</span>'+
+    '<span class="rf-m">'+esc(x.stage)+(x.grade?'・'+esc(x.grade):'')+(x.back>0?'・回訪'+x.back+'次':'')+'・上次 '+esc(x.last||'—')+'</span>'+
+    (x.due?'<span class="rf-d'+(od?' od':'')+'">'+(od?'該追 '+esc(x.due):'追蹤 '+esc(x.due))+'</span>':'')+
+  '</div>';
+}
+function saveEv(eid,id){
+  var note=$(id+'_n').value, boss=$(id+'_b').value;
+  var msg=$(id+'_m');
+  msg.textContent='儲存中…';
+  api({action:'updEvent',eid:eid,note:note,boss:boss}).then(function(r){
+    msg.textContent = r.ok ? '已儲存' : ('儲存失敗：'+(r.error||''));
+    msg.className = 'rc-msg'+(r.ok?' ok':' err');
+    if(r.ok) setTimeout(function(){ msg.textContent=''; },1800);
+  });
+}
+
+// ===================== 報表 =====================
+function initRpt(){ if(!S.rptRange){ S.rptRange='today'; } loadRpt(); }
+function pickRng(el){
+  document.querySelectorAll('.rng').forEach(function(e){ e.classList.toggle('on', e===el); });
+  S.rptRange=el.dataset.r;
+  loadRpt();
+}
+function rngDates(){
+  var d=new Date(), y=d.getFullYear(), m=d.getMonth(), day=d.getDate();
+  function f(x){ return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
+  var to=f(d), from='';
+  if(S.rptRange==='today') from=to;
+  else if(S.rptRange==='week'){ var dow=d.getDay()||7; var mon=new Date(y,m,day-dow+1); from=f(mon); }
+  else if(S.rptRange==='month'){ from=f(new Date(y,m,1)); }
+  else from='';
+  return {from:from,to:to};
+}
+function loadRpt(){
+  var r=rngDates();
+  var 始=String((S.config||{})['統計起始日']||'').replace(/\//g,'-');
+  $('rngInfo').textContent = r.from ? (r.from+' ~ '+r.to) : (始? ('全案累計 '+始+' ~ '+r.to) : ('全案累計至 '+r.to));
+  $('rptWx').classList.toggle('hidden', S.rptRange!=='today');
+  $('rptBody').innerHTML='<div class="load">計算中…</div>';
+  api({action:'report',from:r.from,to:r.to}).then(function(res){
+    if(!res.ok){ $('rptBody').innerHTML='<div class="empty">'+esc(res.error||'')+'</div>'; return; }
+    S.rpt=res; drawRpt();
+    if(res.from && S.rptRange==='all') $('rngInfo').textContent='全案累計 '+res.from+' ~ '+res.to;
+  });
+}
+function drawRpt(){
+  var r=S.rpt;
+  var 類=['名單進件','來電','來人','回訪'];
+  var 別名={'名單進件':'網路預約','來電':'來電','來人':'來人','回訪':'回訪'};
+  var h='';
+  h+='<div class="stat">'+類.map(function(t){
+    return '<div class="stat-c"><div class="stat-l">'+別名[t]+'</div><div class="stat-v">'+(r.組數[t]||0)+'</div>'+
+      '<div class="stat-s">累計 '+(r.累計[t]||0)+'</div></div>';
+  }).join('')+'</div>';
+  if(r.個人版){
+    h='<div class="note-box">以下只計算<b>你自己的客戶</b>（'+esc(r.本人||'')+'）</div>'+h;
+  } else {
+    var lbl={today:'複製本日日報',week:'複製本週統計',month:'複製本月統計',all:'複製全案累計'}[S.rptRange]||'複製統計文字';
+    h+='<button class="btn btn-sm btn-ghost cp" onclick="copyDaily()">'+lbl+'</button>';
+  }
+
+  ['居住區域','媒體來源','客戶職業','年齡層','購屋用途'].forEach(function(label){
+    var x=r.交叉[label]||{};
+    var keys={};
+    類.forEach(function(t){ Object.keys(x[t]||{}).forEach(function(k){ keys[k]=1; }); });
+    var ks=Object.keys(keys);
+    if(!ks.length) return;
+    ks.sort(function(a,b){
+      var sa=類.reduce(function(s,t){ return s+((x[t]||{})[a]||0); },0);
+      var sb=類.reduce(function(s,t){ return s+((x[t]||{})[b]||0); },0);
+      return sb-sa;
+    });
+    h+='<div class="sec-h">'+label+'分析'+
+       (r.個人版?'':'<button class="cpx" onclick="copySec(\'' + label + '\')">複製</button>')+'</div>'+
+      '<table class="rt"><thead><tr><th>'+label+'</th>'+類.map(function(t){return '<th>'+別名[t]+'</th>';}).join('')+'</tr></thead><tbody>'+
+      ks.map(function(k){
+        return '<tr><td>'+esc(k)+'</td>'+類.map(function(t){
+          var n=(x[t]||{})[k]||0;
+          return '<td'+(n?'':' class="z"')+'>'+(n||'—')+'</td>';
+        }).join('')+'</tr>';
+      }).join('')+'</tbody></table>';
+  });
+
+  h+='<div class="sec-h">成交狀態</div><div class="stat">'+
+    ['未成交','已小訂','已補足','已簽約','已退戶'].map(function(k){
+      return '<div class="stat-c"><div class="stat-l">'+k+'</div><div class="stat-v">'+(r.成交[k]||0)+'</div></div>';
+    }).join('')+'</div>';
+
+  h+='<div class="sec-h">有望客戶（A級）'+r.有望.length+' 組'+(r.個人版?'':'<button class="cpx" onclick="copyHope()">複製</button>')+'</div>'+
+    (r.有望.length?'<table class="rt"><thead><tr><th>客戶</th><th>介紹戶別</th><th>階段</th><th>業務</th><th>最後互動</th></tr></thead><tbody>'+
+      r.有望.map(function(x){
+        return '<tr><td>'+esc(x.name)+'</td><td>'+esc(x.unit||'—')+'</td><td>'+esc(x.stage)+'</td><td>'+esc(x.owner||'—')+'</td><td>'+esc(x.last||'—')+'</td></tr>';
+      }).join('')+'</tbody></table>':'<div class="hint">這個區間沒有 A 級客戶</div>');
+
+  h+='<div class="sec-h">回訪客戶 '+r.回訪清單.length+' 組'+(r.個人版?'':'<button class="cpx" onclick="copyBack()">複製</button>')+'</div>'+
+    (r.回訪清單.length?'<table class="rt"><thead><tr><th>日期</th><th>客戶</th><th>戶別</th><th>業務</th><th>紀錄</th></tr></thead><tbody>'+
+      r.回訪清單.map(function(x){
+        return '<tr><td>'+esc(x.date)+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.unit||'—')+'</td><td>'+esc(x.owner||'—')+'</td><td class="nt">'+esc(x.note)+'</td></tr>';
+      }).join('')+'</tbody></table>':'<div class="hint">這個區間沒有回訪</div>');
+
+  $('rptBody').innerHTML=h;
+}
+function cp(t){
+  if(navigator.clipboard) navigator.clipboard.writeText(t).then(function(){ alert('已複製'); });
+  else { var a=document.createElement('textarea'); a.value=t; document.body.appendChild(a); a.select(); document.execCommand('copy'); a.remove(); alert('已複製'); }
+}
+function roc(d){
+  var p=String(d).split('-');
+  if(p.length<3) return String(d);
+  return (Number(p[0])-1911)+'/'+p[1]+'/'+p[2];
+}
+function copyDaily(){
+  if(!S.rpt||!S.rpt.日報){ alert('請先載入報表'); return; }
+  var r=S.rpt, dr=rngDates(), rg=S.rptRange;
+  var n = (rg==='today') ? r.日報.本日
+        : (rg==='all')   ? r.日報.全案
+        : r.組數;
+  var 本日 = (rg==='today');
+  var 標題, 段名;
+  if(rg==='today'){
+    var wx=$('rptWx').value;
+    標題='【'+(r.案名||'')+'】'+roc(r.日報.今日)+'(週'+r.日報.星期+')'+wx;
+    段名='本日統計';
+  } else if(rg==='all'){
+    var st=String((S.config||{})['統計起始日']||'').replace(/\//g,'-');
+    標題='【'+(r.案名||'')+'】'+(st? roc(st)+' ~ '+roc(dr.to) : '全案累計 至 '+roc(dr.to));
+    段名='全案累計';
+  } else {
+    標題='【'+(r.案名||'')+'】'+roc(dr.from)+' ~ '+roc(dr.to);
+    段名=(rg==='week'?'本週累計':'本月累計');
+  }
+  var pre = 本日 ? '' : '累';
+  var t = 標題+'\n'+段名+'：\n'+
+    '網路預約'+(n['名單進件']||0)+'組\n'+
+    '來人'+(n['來人']||0)+'組，來電'+(n['來電']||0)+'通，回籠'+(n['回訪']||0)+'組\n'+
+    pre+'訂0戶0萬\n'+pre+'足0戶0萬\n'+pre+'簽0戶0萬\n買進0戶0萬';
+  cp(t);
+}
+function copySec(label){
+  if(!S.rpt||!S.rpt.交叉){ alert('請先載入報表'); return; }
+  var r=S.rpt, x=r.交叉[label]||{};
+  var 類=['名單進件','來電','來人','回訪'], 別名={'名單進件':'網路預約','來電':'來電','來人':'來人','回訪':'回訪'};
+  var keys={}; 類.forEach(function(t){ Object.keys(x[t]||{}).forEach(function(k){ keys[k]=1; }); });
+  var t2=label+'分析\n'+Object.keys(keys).map(function(k){
+    return k+'：'+類.map(function(c){ return 別名[c]+' '+((x[c]||{})[k]||0); }).join('、');
+  }).join('\n');
+  cp(t2);
+}
+function copyHope(){
+  if(!S.rpt||!S.rpt.有望){ alert('請先載入報表'); return; }
+  var t=S.rpt.有望.map(function(x,i){
+    return (i+1)+'. '+x.name+'　'+(x.unit||'')+'　'+x.stage+'　'+(x.owner||'');
+  }).join('\n');
+  cp('有望客戶\n'+t);
+}
+function copyBack(){
+  if(!S.rpt||!S.rpt.回訪清單){ alert('請先載入報表'); return; }
+  var t=S.rpt.回訪清單.map(function(x,i){
+    return (i+1)+'. '+x.date+'　'+x.name+'　'+(x.unit||'')+'　'+(x.owner||'')+'\n　　'+x.note;
+  }).join('\n');
+  cp('回訪客戶\n'+t);
+}
+
+// ===================== 設定 =====================
+var API = 'https://script.google.com/macros/s/AKfycbwjACXIfVv_NZzRKdwemAZsk4LZnA6b8-xGzfVR9a7zAvRMums3LLQLEiOwWaoB3AM/exec';
+
+var S = {};
+
+// ===================== 工具 =====================
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function api(body){
+  return fetch(API,{method:'POST',body:JSON.stringify(Object.assign({token:S.token,case:S.caseCode},body))})
+    .then(function(r){return r.json();})
+    .then(function(j){
+      if(j && !j.ok && /未授權|逾時/.test(j.error||'')){ alert('登入逾時，請重新登入'); logout(); throw new Error('auth'); }
+      return j;
+    });
+}
+function today(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function opts(name, cur, blank){
+  var a = S.dict[name]||[];
+  return (blank?'<option value="">'+blank+'</option>':'') +
+    a.map(function(o){ return '<option'+(o.name===cur?' selected':'')+'>'+esc(o.name)+'</option>'; }).join('');
+}
+function stageCls(s){
+  if(s==='已回訪') return 't-back';
+  if(s==='已首參'||s==='已到場') return 't-visit';
+  if(s==='已聯繫') return 't-track';
+  if(s==='結案') return 't-close';
+  return 't-new';
+}
+
+S = initState();
+
+// ===================== 登入 =====================
+function doLogin(){
+  var a=$('acc').value.trim(), p=$('pwd').value;
+  if(!a||!p){ $('loginMsg').innerHTML='<div class="msg msg-err">請輸入帳號與密碼</div>'; return; }
+  $('loginBtn').disabled=true; $('loginBtn').textContent='登入中…';
+  fetch(API,{method:'POST',body:JSON.stringify({action:'login',account:a,password:p})})
+    .then(function(r){return r.json();})
+    .then(function(res){
+      $('loginBtn').disabled=false; $('loginBtn').textContent='登入';
+      if(!res.ok){ $('loginMsg').innerHTML='<div class="msg msg-err">'+esc(res.error)+'</div>'; return; }
+      S.token=res.token; S.user=res.user; S.user.account=a; S.cases=res.cases||[];
+      $('loginMsg').innerHTML='';
+      if(S.cases.length===1){ enterCase(S.cases[0]); }
+      else { showPicker(); }
+    })
+    .catch(function(e){
+      $('loginBtn').disabled=false; $('loginBtn').textContent='登入';
+      $('loginMsg').innerHTML='<div class="msg msg-err">連線失敗，請檢查網路</div>';
+    });
+}
+function initState(){
+  return { token:null, user:null, cases:[], caseCode:null, caseName:'', dict:{}, config:{}, rows:[],
+    tab:'all', cur:null, scrollY:0, newMode:'來電', cts:[], units:[], unitAll:[],
+    sel:[], selMode:false, staff:[], evUnits:[], evUnitAll:[], evNo:[],
+    impMode:'名單進件', dupHit:null, qHit:null, qN:0,
+    cfgLoaded:false, voidLoaded:false, voidRows:[], exFmt:'csv', dictFull:{}, dictOrder:[], curDict:'', users:[],
+    allCases:[], rev:null, rpt:null, rptRange:'today' };
+}
+function logout(){
+  document.title='禹盛開發客資系統';
+  S=initState();
+  $('login').classList.remove('hidden'); $('picker').classList.add('hidden'); $('main').classList.add('hidden');
+  $('acc').value=''; $('pwd').value=''; $('loginMsg').innerHTML='';
+}
+function showPicker(){
+  $('login').classList.add('hidden'); $('main').classList.add('hidden'); $('picker').classList.remove('hidden');
+  $('pickWho').textContent = S.user.name+'（'+S.user.role+'）';
+  $('caseList').innerHTML = S.cases.length ? S.cases.map(function(c,i){
+    return '<div class="case-item" onclick="enterCase(S.cases['+i+'])"><div><div class="n">'+esc(c.name)+'</div><div class="s">'+esc(c.status||'')+'</div></div><div class="go">→</div></div>';
+  }).join('') : '<div class="empty">你目前沒有可進入的案場</div>';
+}
+function backToPicker(){
+  document.title='禹盛開發客資系統';
+  closeModal(); closeDetail();
+  S.rows=[]; S.dict={}; S.config={}; S.staff=[]; S.cur=null;
+  S.sel=[]; S.selMode=false; S.cfgLoaded=false; S.rev=null; S.rpt=null;
+  S.tab='all';
+  showPicker();
+}
+
+// ===================== 進案場 =====================
+function enterCase(c){
+  S.caseCode=c.code; S.caseName=c.name;
+  $('login').classList.add('hidden'); $('picker').classList.add('hidden'); $('main').classList.remove('hidden');
+  $('caseName').textContent=c.name;
+  document.title='禹盛開發客資系統－'+c.name;
+  $('whoLine').textContent=S.user.name+'（'+S.user.role+'）';
+  $('list').innerHTML='<div class="load">載入中…</div>';
+  applyPerm();
+  api({action:'getDict'}).then(function(d){
+    if(d.ok){ S.dict=d.dict; S.config=d.config; S.staff=d.staff||[]; }
+    return api({action:'getClients'});
+  }).then(function(r){
+    if(!r.ok){ $('list').innerHTML='<div class="empty">'+esc(r.error||'載入失敗')+'</div>'; return; }
+    S.rows=r.rows;
+    buildFilters();
+    render();
+  }).catch(function(){});
+}
+function applyPerm(){
+  var u=S.user||{};
+  document.querySelectorAll('.p-all').forEach(function(e){ e.classList.toggle('hidden', !u.canSeeAll); });
+  document.querySelectorAll('.p-dis').forEach(function(e){ e.classList.toggle('hidden', !u.canDispatch); });
+  document.querySelectorAll('.p-mgr').forEach(function(e){ e.classList.toggle('hidden', !u.canManageUsers); });
+  document.querySelectorAll('.mgr').forEach(function(e){ e.classList.toggle('hidden', !u.canSeeAll); });
+}
+function reload(){
+  api({action:'getClients'}).then(function(r){
+    if(!r.ok) return;
+    S.rows=r.rows; buildFilters(); render();
+  }).catch(function(){});
+}
+
+// ===================== 篩選 =====================
+function buildFilters(){
+  var f=[
+    ['fStage','全部階段','客戶階段'],
+    ['fGrade','全部等級','客戶等級'],
+    ['fArea','全部區域','居住區域'],
+    ['fMedia','全部媒體','媒體來源'],
+    ['fDeal','全部成交','成交狀態']
+  ];
+  var h=f.map(function(x){
+    return '<select id="'+x[0]+'" onchange="render()">'+opts(x[2],'',x[1])+'</select>';
+  }).join('');
+  var 業務=[...new Set(S.rows.map(function(r){return r['業務歸屬'];}).filter(Boolean))];
+  if(S.user.role!=='業務'){
+    h+='<select id="fOwner" onchange="render()"><option value="">全部業務</option>'+
+       業務.sort().map(function(n){return '<option>'+esc(n)+'</option>';}).join('')+
+       '<option value="__none__">（未指派）</option></select>';
+  }
+  var keep={};
+  ['fStage','fGrade','fArea','fMedia','fDeal','fOwner'].forEach(function(id){ var e=$(id); if(e) keep[id]=e.value; });
+  $('filters').innerHTML=h;
+  // 主管以上：階段篩選多一個「已作廢」
+  if(S.user.canDispatch){
+    var fs=$('fStage');
+    if(fs) fs.innerHTML+='<option value="__void__">已作廢</option>';
+  }
+  Object.keys(keep).forEach(function(id){ var e=$(id); if(e) e.value=keep[id]; });
+}
+function setTab(t){
+  closeModal();
+  if(!$('detailView').classList.contains('hidden')) closeDetail();
+  if(t!=='pend'){ S.sel=[]; S.selMode=false; var sb=$('selBtn'); if(sb) sb.textContent='批次改派'; }
+  S.tab=t;
+  document.querySelectorAll('.tab').forEach(function(e){ e.classList.toggle('on', e.dataset.tab===t); });
+  var imp=(t==='imp'), cfg=(t==='cfg'), rev=(t==='rev'), rpt=(t==='rpt');
+  var pend=(t==='pend');
+  ['fGrade','fDeal','fOwner'].forEach(function(id){
+    var e=$(id); if(!e) return;
+    e.classList.toggle('hidden', pend);
+    if(pend) e.value='';
+  });
+  var other=imp||cfg||rev||rpt;
+  $('impView').classList.toggle('hidden', !imp);
+  $('cfgView').classList.toggle('hidden', !cfg);
+  $('revView').classList.toggle('hidden', !rev);
+  $('rptView').classList.toggle('hidden', !rpt);
+  $('listBody').classList.toggle('hidden', other);
+  var sr=document.querySelector('.search-row'); if(sr) sr.classList.toggle('hidden', other);
+  var ft=$('filters'); if(ft) ft.classList.toggle('hidden', other);
+  if(cfg) loadCfg();
+  if(rev) loadReview();
+  if(rpt) initRpt();
+  if(imp) fillQuick();
+  if(!other) render();
+}
+function val(id){ var e=$(id); return e?e.value:''; }
+function clearFilters(){
+  ['fStage','fGrade','fArea','fMedia','fDeal','fOwner'].forEach(function(id){ var e=$(id); if(e) e.value=''; });
+  $('kw').value='';
+  render();
+}
+
+function render(){
+  var kw=$('kw').value.trim().toLowerCase();
+  var td=today();
+  // 切到「已作廢」要向後端另外要資料
+  var wantVoid=(val('fStage')==='__void__');
+  if(wantVoid && !S.voidLoaded){
+    S.voidLoaded=true;
+    api({action:'getClients',includeVoid:true}).then(function(r){
+      if(r.ok){ S.voidRows=r.rows; render(); }
+    });
+    $('list').innerHTML='<div class="load">載入已作廢客戶…</div>';
+    return;
+  }
+  if(!wantVoid) S.voidLoaded=false;
+  var src = wantVoid ? (S.voidRows||[]) : S.rows;
+  var out=src.filter(function(r){
+    if(S.tab==='due'){ var d=String(r['下次追蹤日']||''); if(!d||d>td||r['客戶階段']==='結案') return false; }
+    if(S.tab==='pend'){ if(String(r['業務歸屬']||'').trim() || r['客戶階段']==='結案') return false; }
+    if(kw){
+      var hay=[r['客戶姓名'],r['主要電話'],r['相關聯絡人'],r['歷史背景'],r['介紹戶別'],r['_txt']].join(' ').toLowerCase();
+      if(hay.indexOf(kw)<0) return false;
+    }
+    var m=[['fStage','客戶階段'],['fGrade','客戶等級'],['fArea','居住區域'],['fMedia','媒體來源'],['fDeal','成交狀態'],['fOwner','業務歸屬']];
+    for(var i=0;i<m.length;i++){
+      var v=val(m[i][0]);
+      if(!v) continue;
+      if(v==='__void__') continue;
+      if(v==='__none__'){ if(String(r[m[i][1]]||'').trim()) return false; continue; }
+      if(String(r[m[i][1]]||'').trim()!==v) return false;
+    }
+    return true;
+  });
+  out.sort(function(a,b){
+    var da=String(a['下次追蹤日']||'9999'), db=String(b['下次追蹤日']||'9999');
+    if(da!==db) return da<db?-1:1;
+    return String(b['最後互動日']||'')<String(a['最後互動日']||'')?-1:1;
+  });
+  // 篩選狀態
+  var 名={fStage:'階段',fGrade:'等級',fArea:'區域',fMedia:'媒體',fDeal:'成交',fOwner:'業務'};
+  var 用=[];
+  Object.keys(名).forEach(function(id){
+    var e=$(id); if(!e) return;
+    var on=!!e.value;
+    e.classList.toggle('on', on);
+    if(on) 用.push(名[id]+'：'+(e.value==='__none__'?'未指派':e.value));
+  });
+  var kwOn=!!kw;
+  var fb=$('fbar');
+  if(fb){
+    var show=用.length||kwOn;
+    fb.classList.toggle('hidden', !show);
+    if(show) $('fbarTxt').textContent='篩選中　'+(kwOn?'關鍵字：'+kw+(用.length?'　':''):'')+用.join('　');
+  }
+  $('count').textContent='共 '+out.length+' 位客戶'+(S.tab==='pend'&&S.user.canDispatch?'（點卡片勾選）':'');
+  var pn=S.rows.filter(function(r){ return !String(r['業務歸屬']||'').trim() && r['客戶階段']!=='結案'; }).length;
+  var pe=$('pendN'); if(pe) pe.textContent = pn? ' ('+pn+')' : '';
+  drawBulk();
+  $('list').innerHTML = out.length ? out.map(card).join('')
+    : '<div class="empty">沒有符合條件的客戶</div>';
+}
+
+function card(r){
+  var st=r['客戶階段']||'未聯繫';
+  var due=String(r['下次追蹤日']||''); var od = due && due<=today() && st!=='結案';
+  var sel = (S.user.canDispatch && (S.tab==='pend' || S.selMode));
+  return '<div class="c-card'+(sel?' has-sel':'')+'" onclick="'+(sel?'toggleSel(event,\''+r['客戶ID']+'\')':'openDetail(\''+r['客戶ID']+'\')')+'">'+
+    (sel?'<span class="cbox'+(S.sel.indexOf(r['客戶ID'])>=0?' on':'')+'"></span>':'')+
+    '<div class="c-top">'+
+      '<span class="c-name">'+esc(r['客戶姓名']||'未填姓名')+'</span>'+
+      '<span class="c-phone">'+esc(r['主要電話'])+'</span>'+
+      '<span class="c-tags">'+
+        (r['撞客警示']?'<span class="tag t-warn">撞客</span>':'')+
+        '<span class="tag '+stageCls(st)+'">'+esc(st)+'</span>'+
+        (Number(r['回訪次數'])>0?'<span class="tag t-back">回訪'+r['回訪次數']+'次</span>':'')+
+        (r['客戶等級']?'<span class="tag t-grade">'+esc(r['客戶等級'])+'</span>':'')+
+        (r['成交狀態']&&r['成交狀態']!=='未成交'?'<span class="tag t-deal">'+esc(r['成交狀態'])+'</span>':'')+
+      '</span>'+
+    '</div>'+
+    '<div class="c-meta">'+
+      (r['業務歸屬']?'<span><b>業務</b> '+esc(r['業務歸屬'])+'</span>':'<span style="color:var(--s-new)"><b>未指派</b></span>')+
+      (r['居住區域']?'<span><b>區域</b> '+esc(r['居住區域'])+'</span>':'')+
+      (r['媒體來源']?'<span><b>媒體</b> '+esc(r['媒體來源'])+'</span>':'')+
+      (r['最後互動日']?'<span><b>最後</b> '+esc(r['最後互動日'])+'</span>':'')+
+      (due?'<span class="'+(od?'c-due':'')+'"><b>該追</b> '+esc(due)+'</span>':'')+
+    '</div>'+
+    (r['歷史背景']?'<div class="c-last"><em>舊名單</em>'+esc(String(r['歷史背景']).slice(0,90))+'</div>':'')+
+  '</div>';
+}
+
+// ===================== 改派 =====================
+function staffList(){
+  var a=(S.staff&&S.staff.length)?S.staff.slice():[];
+  // 補上資料裡出現過的業務（避免帳號還沒建）
+  S.rows.forEach(function(r){ var w=String(r['業務歸屬']||'').trim(); if(w&&a.indexOf(w)<0) a.push(w); });
+  return a.sort();
+}
+function voidClient(){
+  var c=S.cur.client;
+  var 廢=String(c['資料狀態']||'').trim()==='作廢';
+  if(廢){
+    if(!confirm('要還原「'+(c['客戶姓名']||'')+'」嗎？\n\n還原後會重新計入統計。')) return;
+    api({action:'voidClient',cid:c['客戶ID'],on:false}).then(function(r){
+      if(!r.ok){ alert(r.error||'還原失敗'); return; }
+      openDetail(c['客戶ID']); reload();
+    });
+    return;
+  }
+  modal('作廢客戶 — '+esc(c['客戶姓名']||''),'作廢不是刪除：資料保留，但不計入統計、不出現在名單',
+    '<div class="field"><label>作廢原因（選填）</label>'+
+      '<input type="text" id="vdReason" placeholder="例：電話輸入錯誤、重複建檔"></div>'+
+    '<div class="note-box">這位客戶的 '+((S.cur.events||[]).length)+' 筆互動紀錄也會一併作廢。<br>'+
+    '之後在「全部客戶」把階段篩選選「已作廢」就能找回並還原。</div>',
+    function(){
+      api({action:'voidClient',cid:c['客戶ID'],on:true,reason:$('vdReason').value.trim()}).then(function(r){
+        if(!r.ok){ alert(r.error||'作廢失敗'); return; }
+        closeModal(); closeDetail(); reload();
+      });
+      return 'wait';
+    }
+  );
+}
+function openAssign(){
+  var c=S.cur.client;
+  var 現=String(c['業務歸屬']||'').trim();
+  modal('改派 — '+esc(c['客戶姓名']||''), 現?('目前業務：'+現):'目前未指派',
+    '<div class="field"><label>改派給</label><select id="asWho">'+
+      '<option value="">（清空，進待派工）</option>'+
+      staffList().map(function(n){return '<option'+(n===現?' selected':'')+'>'+esc(n)+'</option>';}).join('')+
+    '</select></div>'+
+    '<div class="hint">改派會留下紀錄；客戶的互動歷程完整保留。</div>',
+    function(){
+      var who=$('asWho').value;
+      if(who===現){ closeModal(); return false; }
+      api({action:'assign',cids:[c['客戶ID']],assignee:who}).then(function(r){
+        if(!r.ok){ alert('改派失敗：'+(r.error||'')); return; }
+        closeModal(); openDetail(c['客戶ID']); reload();
+      });
+      return 'wait';
+    }
+  );
+}
+
+// ===================== 批次派工 =====================
+function toggleSel(ev, cid){
+  ev.stopPropagation();
+  var i=S.sel.indexOf(cid);
+  if(i>=0) S.sel.splice(i,1); else S.sel.push(cid);
+  render();
+}
+function clearSel(){ S.sel=[]; S.selMode=false; var b=$('selBtn'); if(b) b.textContent='批次改派'; render(); }
+function toggleSelMode(){
+  S.selMode=!S.selMode; S.sel=[];
+  var b=$('selBtn'); if(b) b.textContent=S.selMode?'取消勾選':'批次改派';
+  render();
+}
+function drawBulk(){
+  var bar=$('bulkBar'); if(!bar) return;
+  var show=(S.user.canDispatch && (S.tab==='pend'||S.selMode) && S.sel.length>0);
+  bar.classList.toggle('hidden', !show);
+  if(!show) return;
+  $('bulkN').textContent='已選 '+S.sel.length+' 筆';
+  var sel=$('bulkWho');
+  var keep=sel.value;
+  var html='<option value="">分派給…</option>'+
+    staffList().map(function(n){return '<option>'+esc(n)+'</option>';}).join('')+
+    '<option value="__clear__">（清空歸屬）</option>';
+  if(sel.innerHTML!==html){ sel.innerHTML=html; if(keep) sel.value=keep; }
+}
+function doBulk(){
+  var who=$('bulkWho').value;
+  if(!who){ alert('請選擇要分派給誰'); return; }
+  var w2=(who==='__clear__')?'':who;
+  if(!confirm('把 '+S.sel.length+' 筆'+(w2?('分派給 '+w2):'的業務歸屬清空')+'？')) return;
+  api({action:'assign',cids:S.sel,assignee:w2,allowClear:true}).then(function(res){
+    if(!res.ok){ alert('分派失敗：'+(res.error||'')); return; }
+    S.sel=[]; S.selMode=false;
+    var b=$('selBtn'); if(b) b.textContent='批次改派';
+    reload();
+  });
+}
+
+// ===================== 匯入名單 =====================
+function pickImp(el){
+  document.querySelectorAll('#impView .seg').forEach(function(e){ e.classList.toggle('on', e===el); });
+  var q=(el.dataset.imp==='quick');
+  $('impQuick').classList.toggle('hidden', !q);
+  $('impBulk').classList.toggle('hidden', q);
+  if(q) fillQuick();
+}
+function fillQuick(){
+  var m=$('qMedia'); if(!m) return;
+  function set(id,html){
+    var e=$(id); if(!e) return;
+    var keep=e.value;
+    if(e.innerHTML!==html){ e.innerHTML=html; if(keep) e.value=keep; }
+  }
+  set('qMedia', opts('媒體來源','','請選擇'));
+  set('qArea', opts('居住區域','','請選擇'));
+  set('qMotive', opts('購屋用途','','請選擇'));
+  set('qOwner', '<option value="">先不指派（進待派工）</option>'+
+    staffList().map(function(n){return '<option>'+esc(n)+'</option>';}).join(''));
+}
+function qDup(){
+  var box=$('qDupBox'); var ph=basePhone($('qPhone').value);
+  if(ph.length<8){ box.innerHTML=''; S.qHit=null; return; }
+  var hit=null;
+  S.rows.forEach(function(r){ if(!hit && basePhone(r['主要電話'])===ph) hit=r; });
+  S.qHit=hit;
+  box.innerHTML = hit
+    ? '<div class="dup dup-block"><b>此電話已建檔</b>'+esc(hit['客戶姓名']||'')+'・'+esc(hit['客戶階段']||'')+'・'+esc(hit['業務歸屬']||'未指派')+'</div>'
+    : '<div class="dup dup-ok">新名單</div>';
+}
+function qSave(){
+  var nm=$('qName').value.trim(), ph=$('qPhone').value.trim();
+  if(!nm||!ph){ alert('請填寫姓名與電話'); return; }
+  if(S.qHit){ alert('此電話已建檔，請勿重複'); return; }
+  if(!$('qMedia').value){ alert('請選擇來源（媒體）'); return; }
+  $('qMsg').innerHTML='<div class="msg">建立中…</div>';
+  api({action:'import',mode:'名單進件',list:[{
+    '客戶姓名':nm,'主要電話':ph,'媒體來源':$('qMedia').value,
+    '居住區域':$('qArea').value,'購屋用途':$('qMotive').value,
+    '業務歸屬':(S.user.canDispatch && $('qOwner')) ? $('qOwner').value : '',
+    '歷史背景':$('qNote').value.trim()
+  }]}).then(function(res){
+    if(!res.ok){ $('qMsg').innerHTML='<div class="msg msg-err">'+esc(res.error||'建立失敗')+'</div>'; return; }
+    if(res.added===0){ $('qMsg').innerHTML='<div class="msg msg-err">電話重複，未建立</div>'; return; }
+    S.qN=(S.qN||0)+1;
+    $('qMsg').innerHTML='<div class="msg msg-ok">已建立 '+esc(nm)+'</div>';
+    $('qCount').textContent='這次已建 '+S.qN+' 筆';
+    ['qName','qPhone','qNote'].forEach(function(id){ $(id).value=''; });
+    $('qDupBox').innerHTML=''; S.qHit=null;
+    $('qName').focus();
+    reload();
+  });
+}
+var TPL_COLS=['客戶姓名','主要電話','居住區域','媒體來源','購屋用途','客戶職業','年齡層','業務歸屬','歷史背景'];
+function dlTpl(){
+  var csv='\ufeff'+TPL_COLS.join(',')+'\n王先生,0912345678,南屯區,POP,自住,自營商,41-45歲,,2025年看過前案，預算6000萬\n';
+  var a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='舊名單匯入範本.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function readCsv(input){
+  var f=input.files&&input.files[0]; if(!f) return;
+  var r=new FileReader();
+  r.onload=function(){ $('bulkText').value=String(r.result||'').replace(/^\ufeff/,''); previewBulk(); };
+  r.readAsText(f,'utf-8');
+}
+function splitCsvLine(line){
+  var out=[],cur='',q=false;
+  for(var i=0;i<line.length;i++){
+    var ch=line[i];
+    if(ch==='"'){ if(q&&line[i+1]==='"'){cur+='"';i++;} else q=!q; }
+    else if((ch===','||ch==='\t')&&!q){ out.push(cur); cur=''; }
+    else cur+=ch;
+  }
+  out.push(cur);
+  return out.map(function(x){ return x.trim(); });
+}
+function parseBulk(){
+  var txt=$('bulkText').value.replace(/^\ufeff/,'').trim();
+  if(!txt) return {err:'沒有資料'};
+  var lines=txt.split(/\r?\n/).filter(function(x){ return x.trim(); });
+  if(lines.length<2) return {err:'至少要有標題列與一筆資料'};
+  var head=splitCsvLine(lines[0]);
+  if(head.indexOf('客戶姓名')<0||head.indexOf('主要電話')<0)
+    return {err:'標題列必須包含「客戶姓名」與「主要電話」。目前偵測到：'+head.join('、')};
+  var rows=[];
+  for(var i=1;i<lines.length;i++){
+    var p=splitCsvLine(lines[i]); var o={};
+    head.forEach(function(k,j){ if(k) o[k]=p[j]||''; });
+    if(String(o['主要電話']||'').trim()) rows.push(o);
+  }
+  return {head:head, rows:rows};
+}
+function previewBulk(){
+  var r=parseBulk();
+  var box=$('bulkPrev');
+  if(r.err){ box.innerHTML='<div class="msg msg-err">'+esc(r.err)+'</div>'; return; }
+  var un=r.head.filter(function(k){ return k && TPL_COLS.indexOf(k)<0; });
+  box.innerHTML='<div class="msg msg-ok">偵測到 '+r.rows.length+' 筆、'+r.head.length+' 欄</div>'+
+    (un.length?'<div class="hint">這些欄位會併入歷史背景：'+esc(un.join('、'))+'</div>':'')+
+    '<div class="prev">'+r.rows.slice(0,5).map(function(o){
+      return '<div class="prev-row"><b>'+esc(o['客戶姓名']||'(無名)')+'</b> '+esc(o['主要電話'])+
+        ' <span>'+esc([o['居住區域'],o['媒體來源'],o['購屋用途']].filter(Boolean).join('・'))+'</span></div>';
+    }).join('')+(r.rows.length>5?'<div class="hint">…共 '+r.rows.length+' 筆</div>':'')+'</div>'+
+    '<button class="btn" onclick="doBulkImport()">確認匯入 '+r.rows.length+' 筆</button>';
+}
+function doBulkImport(){
+  var r=parseBulk();
+  if(r.err){ alert(r.err); return; }
+  if(!confirm('要匯入 '+r.rows.length+' 筆舊名單？\n\n這批不會計入任何統計，全部歸為「未聯繫」。')) return;
+  $('bulkPrev').innerHTML='<div class="msg">匯入中…請稍候</div>';
+  api({action:'import',mode:'舊名單',list:r.rows}).then(function(res){
+    if(!res.ok){ $('bulkPrev').innerHTML='<div class="msg msg-err">匯入失敗：'+esc(res.error||'')+'</div>'; return; }
+    $('bulkPrev').innerHTML='<div class="msg msg-ok">已匯入 '+res.added+' 筆'+(res.skipped?'，略過重複或無效 '+res.skipped+' 筆':'')+'</div>';
+    $('bulkText').value=''; reload();
+  });
+}
+
+// ===================== 設定 =====================
+function pickCfg(el){
+  document.querySelectorAll('#cfgView .segs .seg').forEach(function(e){ e.classList.toggle('on', e===el); });
+  var w=el.dataset.cfg;
+  $('cfgDict').classList.toggle('hidden', w!=='dict');
+  $('cfgCase').classList.toggle('hidden', w!=='case');
+  $('cfgUser').classList.toggle('hidden', w!=='user');
+  $('cfgMgr').classList.toggle('hidden', w!=='mgr');
+  $('cfgExp').classList.toggle('hidden', w!=='exp');
+  if(w==='case') drawCase();
+  if(w==='user') loadUsers();
+  if(w==='mgr') loadCases();
+  if(w==='exp') drawExport();
+}
+function loadCfg(){
+  if(S.cfgLoaded) return;
+  api({action:'dictList'}).then(function(r){
+    if(!r.ok){ $('cfgDict').innerHTML='<div class="empty">'+esc(r.error||'載入失敗')+'</div>'; return; }
+    S.dictFull=r.dict; S.dictOrder=r.order; S.config=r.config; S.cfgLoaded=true;
+    drawDict();
+  });
+}
+var CASE_DIC=['居住區域','媒體來源','需求房數','需求地坪','需求建坪','需求車位','預算範圍'];
+function drawDict(){
+  var h=S.dictOrder.map(function(d){
+    var a=S.dictFull[d]||[];
+    var on=a.filter(function(x){return x.on;}).length;
+    var tag=CASE_DIC.indexOf(d)>=0?'<span class="dtag">案場可調</span>':'<span class="dtag dtag-fix">全公司固定</span>';
+    return '<div class="drow" onclick="openDict(\'' + d + '\')">'+
+      '<span class="dname">'+esc(d)+'</span>'+tag+
+      '<span class="dcount">'+on+' 項'+(a.length>on?'（另 '+(a.length-on)+' 項停用）':'')+'</span>'+
+      '<span class="dgo">&rsaquo;</span></div>';
+  }).join('');
+  $('cfgDict').innerHTML='<div class="hint" style="margin-bottom:8px">改名與新增立即生效，不影響歷史統計。停用的選項舊資料照常顯示，只是新資料選不到。</div><div class="dlist">'+h+'</div>';
+}
+function openDict(d){
+  S.curDict=d;
+  var a=S.dictFull[d]||[];
+  modal('編輯「'+d+'」', (CASE_DIC.indexOf(d)>=0?'案場可調 — 改這裡只影響本案場':'全公司固定 — 改了會影響跨案比較'),
+    '<div id="dItems">'+a.map(dictRow).join('')+'</div>'+
+    '<div class="field" style="margin-top:12px"><label>新增選項</label>'+
+      '<div class="addrow"><input type="text" id="dNew" placeholder="輸入名稱後按新增">'+
+      '<button type="button" class="btn btn-sm" onclick="dictAdd()">新增</button></div></div>',
+    function(){ closeModal(); return false; }
+  );
+  var b=$('mOk'); if(b) b.textContent='完成';
+}
+function dictRow(x){
+  return '<div class="ditem'+(x.on?'':' off')+'">'+
+    '<input type="text" value="'+esc(x.name)+'" onchange="dictRename('+x.row+',this.value)">'+
+    '<button type="button" class="copy-x" onclick="dictToggle('+x.row+','+(x.on?'false':'true')+')">'+(x.on?'停用':'啟用')+'</button>'+
+  '</div>';
+}
+function refreshDict(){
+  api({action:'dictList'}).then(function(r){
+    if(!r.ok) return;
+    S.dictFull=r.dict; S.dictOrder=r.order;
+    S.dict={}; r.order.forEach(function(d){ S.dict[d]=(r.dict[d]||[]).filter(function(x){return x.on;}); });
+    var box=$('dItems'); if(box) box.innerHTML=(S.dictFull[S.curDict]||[]).map(dictRow).join('');
+    drawDict();
+  });
+}
+function dictAdd(){
+  var nm=$('dNew').value.trim();
+  if(!nm) return;
+  api({action:'dictSave',op:'add',dict:S.curDict,name:nm}).then(function(r){
+    if(!r.ok){ alert(r.error||'新增失敗'); return; }
+    $('dNew').value=''; refreshDict();
+  });
+}
+function dictRename(row,name){
+  api({action:'dictSave',op:'rename',dict:S.curDict,row:row,name:name}).then(function(r){
+    if(!r.ok) alert(r.error||'改名失敗');
+    refreshDict();
+  });
+}
+function dictToggle(row,on){
+  api({action:'dictSave',op:'toggle',dict:S.curDict,row:row,on:on}).then(function(r){
+    if(!r.ok) alert(r.error||'操作失敗');
+    refreshDict();
+  });
+}
+var CFG_KEYS=['案名','建設公司','代銷公司','案件類型','總戶數','統計起始日','代理期間起','代理期間迄','戶別清單','追蹤間隔_A級','追蹤間隔_B級','追蹤間隔_C級','每人每日浮出組數'];
+function drawCase(){
+  var c=S.config||{};
+  $('cfgCase').innerHTML='<div class="hint" style="margin:8px 0">開新案時主要就是改這一頁。</div><div class="two">'+
+    CFG_KEYS.map(function(k){
+      var big=(k==='戶別清單'), sel=(k==='案件類型');
+      return '<div class="field'+(big?' wide':'')+'"><label>'+k+(big?'（逗號分隔，可從銷控表整欄複製貼上）':'')+'</label>'+
+        (big?'<textarea id="cfg_'+k+'" rows="4">'+esc(c[k]||'')+'</textarea>'
+            :sel?'<select id="cfg_'+k+'">'+opts('案件類型',c[k]||'','')+'</select>'
+            :'<input type="text" id="cfg_'+k+'" value="'+esc(c[k]||'')+'">')+'</div>';
+    }).join('')+'</div>'+
+    '<button class="btn" onclick="saveCase()">儲存設定</button><div id="cfgMsg"></div>';
+}
+function saveCase(){
+  var data={};
+  CFG_KEYS.forEach(function(k){ var e=$('cfg_'+k); if(e) data[k]=e.value; });
+  $('cfgMsg').innerHTML='<div class="msg">儲存中…</div>';
+  api({action:'cfgSave',data:data}).then(function(r){
+    if(!r.ok){ $('cfgMsg').innerHTML='<div class="msg msg-err">'+esc(r.error||'')+'</div>'; return; }
+    S.config=data;
+    $('cfgMsg').innerHTML='<div class="msg msg-ok">已儲存 '+r.updated+' 項</div>';
+  });
+}
+function loadUsers(){
+  if(!S.user.canManageUsers){ $('cfgUser').innerHTML='<div class="empty">只有系統管理者可以管理帳號</div>'; return; }
+  $('cfgUser').innerHTML='<div class="load">載入中…</div>';
+  api({action:'userList'}).then(function(r){
+    if(!r.ok){ $('cfgUser').innerHTML='<div class="empty">'+esc(r.error||'')+'</div>'; return; }
+    S.users=r.users;
+    $('cfgUser').innerHTML=
+      '<div class="ulist">'+r.users.map(function(u){
+        return '<div class="urow'+(u.active?'':' off')+'">'+
+          '<div class="uinfo"><b>'+esc(u.name)+'</b>（'+esc(u.account)+'）'+
+          '<span class="dtag">'+esc(u.role)+'</span>'+
+          (u.dispatch?'<span class="dtag dtag-on">可分派</span>':'')+
+          (u.manage?'<span class="dtag dtag-fix">帳號管理</span>':'')+
+          (u.active?'':'<span class="dtag dtag-off">已停用</span>')+
+          '<div class="uc">可存取：'+esc(u.cases||'（未設定）')+'</div></div>'+
+          '<div class="uops">'+
+            (u.account===S.user.account?'<span class="uself">目前登入</span>':'<button class="copy-x" onclick="userToggle('+u.row+','+(u.active?'false':'true')+')">'+(u.active?'停用':'啟用')+'</button>')+
+            '<button class="copy-x" onclick="userPerm('+u.row+',\'' + u.account + '\')">改權限</button>'+
+            '<button class="copy-x" onclick="userPwd('+u.row+',\'' + u.account + '\')">改密碼</button>'+
+          '</div></div>';
+      }).join('')+'</div>'+
+      '<div class="sec-h">新增帳號</div>'+
+      '<div class="two">'+
+        '<div class="field"><label>帳號（英數）</label><input type="text" id="uAcc"></div>'+
+        '<div class="field"><label>姓名</label><input type="text" id="uName"></div>'+
+        '<div class="field"><label>角色</label><select id="uRole"><option>業務</option><option>櫃檯</option><option>主管</option><option>經理人</option></select></div>'+
+        '<div class="field"><label>密碼</label><input type="password" id="uPwd"></div>'+
+      '</div>'+
+      '<div class="field"><label>可存取案場</label><div class="cbox-list" id="uCaseBox">'+caseChecks()+'</div></div>'+
+      '<div class="field"><label>權限</label><div class="chks">'+
+        '<label class="chkl"><input type="checkbox" id="uDis"> 可分派名單</label>'+
+        '<label class="chkl"><input type="checkbox" id="uCross"> 可看跨案總表</label>'+
+        '<label class="chkl"><input type="checkbox" id="uMgr"> 可管理帳號</label></div></div>'+
+      '<button class="btn" onclick="userAdd()">新增帳號</button><div id="uMsg"></div>';
+  });
+}
+function userAdd(){
+  var p={action:'userSave',op:'add',account:$('uAcc').value.trim(),name:$('uName').value.trim(),
+    role:$('uRole').value,password:$('uPwd').value,cases:collectCases(),
+    dispatch:$('uDis').checked,cross:$('uCross').checked,manage:$('uMgr').checked};
+  if(!p.account||!p.name||!p.password){ alert('帳號、姓名、密碼為必填'); return; }
+  api(p).then(function(r){
+    if(!r.ok){ $('uMsg').innerHTML='<div class="msg msg-err">'+esc(r.error||'')+'</div>'; return; }
+    ['uAcc','uName','uPwd'].forEach(function(id){ $(id).value=''; });
+    document.querySelectorAll('#uCaseBox input').forEach(function(e){ e.checked=false; });
+    loadUsers();
+  });
+}
+function userToggle(row,on){
+  if(!on && !confirm('確定停用這個帳號？停用後立即無法登入。')) return;
+  api({action:'userSave',op:'toggle',row:row,on:on}).then(function(r){
+    if(!r.ok){ alert(r.error||''); return; }
+    loadUsers();
+  });
+}
+function userPerm(row,acc){
+  var u=(S.users||[]).filter(function(x){return x.row===row;})[0];
+  if(!u){ alert('找不到帳號'); return; }
+  var list=S.allCases&&S.allCases.length?S.allCases:S.cases;
+  var 全=(u.cases==='全部');
+  modal('修改權限 — '+esc(u.name)+'（'+esc(acc)+'）','角色與存取範圍',
+    '<div class="field"><label>角色</label><select id="pRole">'+
+      ['業務','櫃檯','主管','經理人'].map(function(x){return '<option'+(x===u.role?' selected':'')+'>'+x+'</option>';}).join('')+
+    '</select></div>'+
+    '<div class="field"><label>可存取案場</label><div class="cbox-list">'+
+      '<label class="cbl"><input type="checkbox" id="pAll"'+(全?' checked':'')+' onchange="document.querySelectorAll(\'.pcase\').forEach(function(e){e.disabled=this.checked;if(this.checked)e.checked=false;}.bind(this))"> <b>全部案場</b>（含未來新增）</label>'+
+      list.map(function(c){
+        var on=!全 && String(u.cases||'').split(',').map(function(x){return x.trim();}).indexOf(c.code)>=0;
+        return '<label class="cbl"><input type="checkbox" class="pcase" value="'+esc(c.code)+'"'+(on?' checked':'')+(全?' disabled':'')+'> '+esc(c.name)+'</label>';
+      }).join('')+
+    '</div></div>'+
+    '<div class="field"><label>權限</label><div class="chks">'+
+      '<label class="chkl"><input type="checkbox" id="pDis"'+(u.dispatch?' checked':'')+'> 可分派名單</label>'+
+      '<label class="chkl"><input type="checkbox" id="pCross"'+(u.cross?' checked':'')+'> 可看跨案總表</label>'+
+      '<label class="chkl"><input type="checkbox" id="pMgr"'+(u.manage?' checked':'')+'> 可管理帳號</label>'+
+    '</div></div>',
+    function(){
+      var cases='';
+      if($('pAll').checked) cases='全部';
+      else { var a=[]; document.querySelectorAll('.pcase:checked').forEach(function(e){a.push(e.value);}); cases=a.join(','); }
+      api({action:'userSave',op:'perm',row:row,'角色':$('pRole').value,'可存取案場':cases,
+           '可分派名單':$('pDis').checked,'可看跨案總表':$('pCross').checked,'可管理帳號':$('pMgr').checked})
+      .then(function(r){
+        if(!r.ok){ alert(r.error||'儲存失敗'); return; }
+        closeModal(); loadUsers();
+      });
+      return 'wait';
+    }
+  );
+}
+function userPwd(row,acc){
+  var pw=prompt('輸入「'+acc+'」的新密碼：');
+  if(pw===null) return;
+  if(pw.length<3){ alert('密碼至少 3 碼'); return; }
+  api({action:'userSave',op:'pwd',row:row,password:pw}).then(function(r){
+    if(!r.ok){ alert(r.error||''); return; }
+    alert('已重設 '+acc+' 的密碼');
+  });
+}
+
+// ===================== 詳情 =====================
+function openDetail(cid){
+  S.scrollY = window.scrollY;
+  $('listView').classList.add('hidden'); $('detailView').classList.remove('hidden');
+  window.scrollTo(0,0);
+  $('detail').innerHTML='<div class="load">載入中…</div>';
+  api({action:'getClient',cid:cid}).then(function(r){
+    if(!r.ok){ $('detail').innerHTML='<div class="empty">'+esc(r.error)+'</div>'; return; }
+    S.cur=r; drawDetail(r);
+  }).catch(function(){});
+}
+function closeDetail(){
+  $('detailView').classList.add('hidden'); $('listView').classList.remove('hidden'); S.cur=null;
+  setTimeout(function(){ window.scrollTo(0, S.scrollY||0); }, 0);
+}
+function cells(c, list){
+  var h=list.filter(function(k){ return c[k]!==''&&c[k]!=null; })
+    .map(function(k){ return '<div class="cell"><label>'+k+'</label><span>'+esc(c[k])+'</span></div>'; }).join('');
+  return h;
+}
+function drawDetail(r){
+  var c=r.client, evs=r.events||[];
+  var st=c['客戶階段']||'未聯繫';
+  var 廢=String(c['資料狀態']||'').trim()==='作廢';
+  var 輪廓=cells(c,['居住區域','客戶職業','年齡層','媒體來源','購屋用途','居住地址','電子郵件']);
+  var 需求=cells(c,['需求房數','需求地坪','需求建坪','需求車位','預算範圍','介紹戶別']);
+  var 追蹤=cells(c,['業務歸屬','最後互動日','下次追蹤日','約定到場日','名單來源','未購因素','已購因素']);
+
+  $('detail').innerHTML=
+    (廢?'<div class="void-bar">此客戶已作廢，不計入任何統計。按「還原」可恢復。</div>':'')+
+    '<div class="d-head'+(廢?' voided':'')+'">'+
+      '<div class="d-name">'+esc(c['客戶姓名']||'未填姓名')+'</div>'+
+      '<div class="d-phone">'+esc(c['主要電話'])+'</div>'+
+      (c['相關聯絡人']?'<div class="d-contacts">'+String(c['相關聯絡人']).split('\n').filter(Boolean).map(function(x){return '<span>'+esc(x)+'</span>';}).join('')+'</div>':'')+
+      '<div class="d-tags">'+
+        (c['撞客警示']?'<span class="tag t-warn">'+esc(c['撞客警示'])+'</span>':'')+
+        '<span class="tag '+stageCls(st)+'">'+esc(st)+'</span>'+
+        (Number(c['回訪次數'])>0?'<span class="tag t-back">回訪'+c['回訪次數']+'次</span>':'')+
+        (c['客戶等級']?'<span class="tag t-grade">'+esc(c['客戶等級'])+'</span>':'')+
+        (c['成交狀態']?'<span class="tag t-close">'+esc(c['成交狀態'])+'</span>':'')+
+      '</div>'+
+    '</div>'+
+    '<div class="acts">'+
+      '<button class="btn" onclick="openEvent(\'追蹤\')">記錄聯繫</button>'+
+      '<button class="btn" onclick="openEvent(\'到場\')">記錄到場</button>'+
+      '<button class="btn btn-ghost" onclick="openEdit()">編輯資料</button>'+
+      (S.user.canDispatch?'<button class="btn btn-ghost" onclick="openAssign()">改派</button>':'')+
+      (S.user.canDispatch?'<button class="btn btn-ghost btn-danger" onclick="voidClient()">'+(廢?'還原':'作廢')+'</button>':'')+
+    '</div>'+
+    (輪廓?'<div class="sec"><div class="sec-h">客戶輪廓</div><div class="grid">'+輪廓+'</div></div>':'')+
+    (需求?'<div class="sec"><div class="sec-h">需求</div><div class="grid">'+需求+'</div></div>':'')+
+    (追蹤?'<div class="sec"><div class="sec-h">追蹤狀態</div><div class="grid">'+追蹤+'</div></div>':'')+
+    (c['歷史背景']?'<div class="sec"><div class="sec-h">歷史背景（舊名單匯入·唯讀）</div><div class="hist">'+esc(c['歷史背景'])+'</div></div>':'')+
+    '<div class="sec"><div class="sec-h">互動紀錄（'+evs.length+'）</div>'+
+      (evs.length?'<div class="tl">'+evs.map(evRow).join('')+'</div>':'<div class="empty">還沒有任何互動紀錄</div>')+
+    '</div>';
+}
+function canEditEv(e){
+  if(S.user.role!=='業務') return true;
+  return String(e['業務']||'').trim()===S.user.name;
+}
+function evRow(e,i){
+  var t=e['互動類型']||'';
+  var cls = (t==='來人'||t==='回訪') ? 'e-visit' : (t==='來電'||t==='追蹤聯繫') ? 'e-call' : '';
+  var 軌=String(e['修改軌跡']||'').trim();
+  var evVoid=String(e['資料狀態']||'').trim()==='作廢';
+  return '<div class="ev '+cls+(evVoid?' ev-void':'')+'" id="ev_'+i+'">'+
+    '<div class="ev-h">'+
+      '<span class="ev-t" onclick="foldEv('+i+')">'+esc(t)+'</span>'+
+      '<span class="ev-d" onclick="foldEv('+i+')">'+esc(e['事件日期'])+'</span>'+
+      '<span class="ev-w" onclick="foldEv('+i+')">'+esc(e['業務']||'')+(e['聯繫結果']?'・'+esc(e['聯繫結果']):'')+'</span>'+
+      (軌?'<span class="ev-ed" onclick="showTrail('+i+')" title="已編輯過">已編輯</span>':'')+
+      (canEditEv(e)?'<button class="ev-btn" onclick="editEv('+i+')">編輯</button>':'')+
+      (S.user.canSeeAll?'<button class="ev-btn" onclick="voidEv('+i+')">'+(String(e['資料狀態']||'').trim()==='作廢'?'還原':'作廢')+'</button>':'')+
+    '</div>'+
+    '<div class="ev-b fold" id="evb_'+i+'">'+esc(e['客戶狀況']||'（未填）')+'</div>'+
+    (e['櫃檯指示']?'<div class="ev-note"><b>櫃檯指示</b>　'+esc(e['櫃檯指示'])+'</div>':'')+
+  '</div>';
+}
+function foldEv(i){ var b=$('evb_'+i); if(b) b.classList.toggle('fold'); }
+function voidEv(i){
+  var e=(S.cur.events||[])[i]; if(!e) return;
+  var 廢=String(e['資料狀態']||'').trim()==='作廢';
+  var msg=廢? '要還原這筆紀錄嗎？還原後會重新計入統計。'
+            : '要作廢這筆「'+(e['互動類型']||'')+'　'+(e['事件日期']||'')+'」嗎？\n\n資料保留但不計入統計，可以還原。';
+  if(!confirm(msg)) return;
+  api({action:'voidEvent',eid:e['事件ID'],on:!廢}).then(function(r){
+    if(!r.ok){ alert(r.error||'操作失敗'); return; }
+    openDetail(S.cur.client['客戶ID']); reload();
+  });
+}
+function showTrail(i){
+  var e=(S.cur.events||[])[i]; if(!e) return;
+  modal('修改紀錄','誰在什麼時候改了什麼',
+    '<div class="trail">'+esc(String(e['修改軌跡']||'（無）'))+'</div>',
+    function(){ closeModal(); return false; });
+  var b=$('mOk'); if(b) b.textContent='關閉';
+}
+function editEv(i){
+  var e=(S.cur.events||[])[i]; if(!e) return;
+  var 可櫃檯=(S.user.role!=='業務');
+  modal('編輯紀錄 — '+esc(e['互動類型']||'')+'　'+esc(e['事件日期']||''),
+    '修改會留下軌跡，日期與類型不變',
+    '<div class="field"><label>客戶狀況</label>'+
+      '<textarea id="edNote" rows="6">'+esc(e['客戶狀況']||'')+'</textarea></div>'+
+    (可櫃檯?'<div class="field"><label>櫃檯指示</label><input type="text" id="edBoss" value="'+esc(e['櫃檯指示']||'')+'"></div>':'')+
+    (String(e['修改軌跡']||'').trim()?'<div class="field"><label>過去的修改</label><div class="trail">'+esc(e['修改軌跡'])+'</div></div>':''),
+    function(){
+      var note=$('edNote').value.trim();
+      if(!note){ alert('客戶狀況不可空白'); return false; }
+      var p={action:'updEvent',eid:e['事件ID'],note:note};
+      var b=$('edBoss'); if(b) p.boss=b.value;
+      api(p).then(function(r){
+        if(!r.ok){ alert('儲存失敗：'+(r.error||'')); return; }
+        closeModal(); openDetail(S.cur.client['客戶ID']);
+      });
+      return 'wait';
+    }
+  );
+}
+
+// ===================== 記錄接觸 =====================
+function openEvent(mode){
+  var c=S.cur.client;
+  var 到場=(mode==='到場');
+  var 來過=(S.cur.events||[]).some(function(e){var t=e['互動類型'];return t==='來人'||t==='回訪';});
+  var 預期 = 到場 ? (來過?'回訪':'來人') : '追蹤聯繫';
+  var 戶別=String(S.config['戶別清單']||'').split(/[,、]/).map(function(x){return x.trim();}).filter(Boolean);
+  S.evUnits=String(c['介紹戶別']||'').split(/[,、]/).map(function(x){return x.trim();}).filter(Boolean);
+  S.evUnitAll=戶別;
+  function s(k,dic,lbl){
+    return '<div class="field"><label>'+(lbl||k)+'</label><select id="m_'+k+'">'+
+      opts(dic||k,c[k]||'','未填')+
+      (c[k]?'<option value="__clear__">— 清空 —</option>':'')+
+    '</select></div>';
+  }
+  modal(
+    (到場?'記錄到場':'記錄聯繫')+' — '+esc(c['客戶姓名']||''),
+    '系統會記為「'+預期+'」，日期固定為今天（不可修改）',
+    '<div class="field"><label>客戶狀況 <span class="req">*</span></label>'+
+      '<textarea id="mNote" rows="5" placeholder="'+(到場?'帶看哪幾戶、客戶反應、疑慮、下一步…':'聯繫內容、客戶回應、下一步…')+'"></textarea></div>'+
+    (到場?'':'<div class="field"><label>聯繫結果</label><select id="mResult" onchange="evResult()">'+opts('聯繫結果','','請選擇')+'</select></div>'+
+           '<div class="field hidden" id="mVisitBox"><label>約定到場日</label><input type="date" id="mVisit"></div>')+
+    '<div class="sec-h">狀態（顯示目前紀錄，有變動再改）</div>'+
+    '<div class="two">'+
+      s('客戶等級')+s('成交狀態')+
+    '</div>'+
+    (到場?
+      '<div class="sec-h">需求（顯示目前紀錄，有變動再改）</div>'+
+      '<div class="two">'+
+        s('需求房數')+s('需求地坪')+s('需求建坪')+s('需求車位')+s('預算範圍')+
+      '</div>'+
+      '<div class="field"><label>介紹戶別</label>'+
+        (戶別.length?'<input type="text" id="evKw" placeholder="搜尋戶別" oninput="drawEvUnits()"><div id="evUnitBox" class="units"></div>'
+                    :'<div class="hint">案場設定裡還沒填戶別清單</div>')+
+      '</div>'+
+      '<div class="field"><label>未購因素（可複選，客戶有疑慮或不考慮時填）</label>'+
+        '<div id="evNoBox" class="units"></div></div>'
+    :'')+
+    (S.user.role!=='業務'?'<div class="field"><label>櫃檯指示（選填）</label><input type="text" id="mBoss" placeholder="對客資時的判斷與交辦"></div>':''),
+    function(){
+      var note=$('mNote').value.trim();
+      if(!note){ alert('請填寫客戶狀況'); return false; }
+      var p={action:'addEvent',cid:c['客戶ID'],mode:mode,note:note};
+      var r=$('mResult'); if(r&&r.value) p.result=r.value;
+      var vd=$('mVisit'); if(vd&&vd.value) p.visitDate=vd.value;
+      var b=$('mBoss'); if(b&&b.value.trim()) p.boss=b.value.trim();
+      var g=$('m_客戶等級'); if(g&&g.value&&g.value!=='__clear__') p.grade=g.value;
+      var d=$('m_成交狀態'); if(d&&d.value&&d.value!=='__clear__') p.deal=d.value;
+      // 需求欄位走 updClient
+      var data={};
+      ['需求房數','需求地坪','需求建坪','需求車位','預算範圍'].forEach(function(k){
+        var e=$('m_'+k); if(!e) return;
+        if(e.value==='__clear__') data[k]='';
+        else if(e.value) data[k]=e.value;
+      });
+      if(到場){
+        data['介紹戶別']=(S.evUnits||[]).join('、');
+        if((S.evNo||[]).length) data['未購因素']=(S.evNo||[]).join('、');
+      }
+      api(p).then(function(res){
+        if(!res.ok){ alert('儲存失敗：'+(res.error||'')); return; }
+        var after=function(){ closeModal(); openDetail(c['客戶ID']); reload(); };
+        if(Object.keys(data).length) api({action:'updClient',cid:c['客戶ID'],data:data}).then(after);
+        else after();
+      });
+      return 'wait';
+    }
+  );
+  S.evNo=String(c['未購因素']||'').split(/[,、]/).map(function(x){return x.trim();}).filter(Boolean);
+  if(到場){ drawEvUnits(); drawEvNo(); }
+}
+function evResult(){
+  var r=$('mResult'), box=$('mVisitBox');
+  if(!r||!box) return;
+  box.classList.toggle('hidden', r.value.indexOf('已約')<0);
+}
+function drawEvUnits(){
+  var box=$('evUnitBox'); if(!box) return;
+  var kw=($('evKw')||{}).value||'';
+  var list=(S.evUnitAll||[]).filter(function(u){ return !kw || u.toLowerCase().indexOf(kw.toLowerCase())>=0; });
+  box.innerHTML=list.length? list.map(function(u){
+    var on=(S.evUnits||[]).indexOf(u)>=0;
+    return '<button type="button" class="unit'+(on?' on':'')+'" onclick="tapEvUnit(\''+u+'\')">'+esc(u)+'</button>';
+  }).join('') : '<div class="hint">找不到戶別</div>';
+}
+function tapEvUnit(u){
+  var i=(S.evUnits||[]).indexOf(u);
+  if(i>=0) S.evUnits.splice(i,1); else S.evUnits.push(u);
+  drawEvUnits();
+}
+function drawEvNo(){
+  var box=$('evNoBox'); if(!box) return;
+  var a=S.dict['未購因素']||[];
+  box.innerHTML=a.map(function(o){
+    var on=(S.evNo||[]).indexOf(o.name)>=0;
+    return '<button type="button" class="unit'+(on?' on':'')+'" onclick="tapEvNo(\''+o.name+'\')">'+esc(o.name)+'</button>';
+  }).join('');
+}
+function tapEvNo(n){
+  var i=(S.evNo||[]).indexOf(n);
+  if(i>=0) S.evNo.splice(i,1); else S.evNo.push(n);
+  drawEvNo();
+}
+
+// ===================== 建客戶 =====================
+function openNew(){
+  var 可派 = !!S.user.canDispatch;
+  modal('建立客戶','輸入電話後會立即查重',
+    '<div class="field"><label>這位客戶怎麼來的？ <span class="req">*</span></label>'+
+      '<div class="segs">'+
+        '<button class="seg on" data-mode="來電" onclick="pickMode(this)">打電話進來</button>'+
+        '<button class="seg" data-mode="來人" onclick="pickMode(this)">直接走進來</button>'+
+      '</div></div>'+
+    '<div class="two">'+
+      '<div class="field"><label>聯絡電話 <span class="req">*</span></label>'+
+        '<input type="tel" id="nPhone" placeholder="0912345678" oninput="dupCheck()"></div>'+
+      '<div class="field"><label>客戶姓名 <span class="req">*</span></label><input type="text" id="nName"></div>'+
+    '</div>'+
+    '<div id="dupBox"></div>'+
+    '<div class="two">'+
+      '<div class="field"><label>居住區域 <span class="req">*</span></label><select id="nArea">'+opts('居住區域','','請選擇')+'</select></div>'+
+      '<div class="field"><label>媒體來源 <span class="req">*</span></label><select id="nMedia">'+opts('媒體來源','','請選擇')+'</select></div>'+
+      '<div class="field"><label>購屋用途 <span class="req">*</span></label><select id="nMotive">'+opts('購屋用途','','請選擇')+'</select></div>'+
+      (可派?'<div class="field n-call"><label>指派給</label><select id="nOwner"><option value="">先不指派（進待派工）</option>'+staffList().map(function(n){return '<option>'+esc(n)+'</option>';}).join('')+'</select></div>':'')+
+    '</div>'+
+    '<div class="n-visit hidden">'+
+      '<div class="sec-h">客戶已到現場，以下請完整填寫</div>'+
+      '<div class="two">'+
+        '<div class="field"><label>年齡層 <span class="req">*</span></label><select id="nAge">'+opts('年齡層','','請選擇')+'</select></div>'+
+        '<div class="field"><label>客戶職業 <span class="req">*</span></label><select id="nJob">'+opts('客戶職業','','請選擇')+'</select></div>'+
+        '<div class="field"><label>客戶等級 <span class="req">*</span></label><select id="nGrade">'+opts('客戶等級','','請選擇')+'</select></div>'+
+        '<div class="field"><label>需求房數 <span class="req">*</span></label><select id="nRoom">'+opts('需求房數','','請選擇')+'</select></div>'+
+        '<div class="field"><label>需求地坪 <span class="req">*</span></label><select id="nLand">'+opts('需求地坪','','請選擇')+'</select></div>'+
+        '<div class="field"><label>需求建坪 <span class="req">*</span></label><select id="nBuild">'+opts('需求建坪','','請選擇')+'</select></div>'+
+        '<div class="field"><label>需求車位 <span class="req">*</span></label><select id="nPark">'+opts('需求車位','','請選擇')+'</select></div>'+
+        '<div class="field"><label>預算範圍 <span class="req">*</span></label><select id="nBudget">'+opts('預算範圍','','請選擇')+'</select></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="field"><label>客戶狀況<span class="n-visit hidden"> <span class="req">*</span></span></label>'+
+      '<textarea id="nNote" rows="3" placeholder="這次接觸的內容"></textarea></div>',
+    function(){ return submitNew(); }
+  );
+  S.newMode='來電'; S.dupHit=null;
+}
+function pickMode(el){
+  document.querySelectorAll('.seg').forEach(function(e){ e.classList.toggle('on', e===el); });
+  S.newMode=el.dataset.mode;
+  var 到場=(S.newMode==='來人');
+  document.querySelectorAll('.n-visit').forEach(function(e){ e.classList.toggle('hidden', !到場); });
+  document.querySelectorAll('.n-call').forEach(function(e){ e.classList.toggle('hidden', 到場); });
+}
+function normPhone(v){
+  var s=String(v||'').trim(), ext='';
+  var em=s.match(/[#＃]\s*(\d+)\s*$/); if(em){ ext=em[1]; s=s.slice(0,em.index); }
+  s=s.replace(/[^\d]/g,'');
+  if(s.indexOf('886')===0&&s.length>=11) s='0'+s.slice(3);
+  if(s.length>=8&&s.length<=9&&s.charAt(0)!=='0') s='0'+s;
+  return ext? s+'#'+ext : s;
+}
+function basePhone(v){ return normPhone(v).split('#')[0]; }
+function dupCheck(){
+  var box=$('dupBox'); if(!box) return;
+  var ph=basePhone($('nPhone').value);
+  S.dupHit=null;
+  if(ph.length<8){ box.innerHTML=''; return; }
+  var main=null, ct=null;
+  S.rows.forEach(function(r){
+    if(basePhone(r['主要電話'])===ph){ main=r; }
+    else if(!ct && String(r['相關聯絡人']||'').split(/[,、;\n]/).some(function(x){ return x && basePhone(x)===ph; })){ ct=r; }
+  });
+  if(main){
+    S.dupHit={type:'main',r:main};
+    var 歸=String(main['業務歸屬']||'').trim();
+    var 別人的 = !S.user.canSeeAll && 歸 && 歸!==S.user.name;
+    if(別人的){
+      box.innerHTML='<div class="dup dup-warn"><b>這位客戶已經是 '+esc(歸)+' 的</b>'+
+        esc(main['客戶姓名']||'')+'・'+esc(main['客戶階段']||'')+
+        '<br>如果你也接待了同一位客戶，記錄下來系統會標示撞客，由主管判定歸屬。'+
+        '<button type="button" class="btn btn-sm" onclick="alsoServed(\''+main['客戶ID']+'\',\''+esc(main['客戶姓名']||'')+'\')">我也接待了</button></div>';
+    } else {
+      box.innerHTML='<div class="dup dup-block"><b>此電話已建檔</b>'+esc(main['客戶姓名']||'')+'・'+esc(main['客戶階段']||'')+
+        '・'+esc(歸||'未指派')+
+        '<button type="button" class="btn btn-sm" onclick="closeModal();openDetail(\''+main['客戶ID']+'\')">開啟</button></div>';
+    }
+  } else if(ct){
+    S.dupHit={type:'contact',r:ct};
+    box.innerHTML='<div class="dup dup-warn"><b>這是既有客戶的相關聯絡人</b>'+esc(ct['客戶姓名']||'')+'・'+esc(ct['業務歸屬']||'未指派')+
+      '<br>可以建成獨立客戶，兩邊會自動建立關聯。'+
+      '<button type="button" class="btn btn-sm btn-ghost" onclick="closeModal();openDetail(\''+ct['客戶ID']+'\')">開啟原客戶</button></div>';
+  } else {
+    box.innerHTML='<div class="dup dup-ok">新客戶</div>';
+  }
+}
+function alsoServed(cid,name){
+  var mode=S.newMode||'來電';
+  modal('記錄接觸 — '+esc(name),'這位客戶目前屬於其他業務，你的紀錄會讓系統標示撞客',
+    '<div class="field"><label>你這次的接觸情形 <span class="req">*</span></label>'+
+      '<textarea id="asNote" rows="5" placeholder="'+(mode==='來人'?'客人來現場、你怎麼接待的…':'客人打電話進來、談了什麼…')+'"></textarea></div>'+
+    '<div class="hint">系統會記為「'+(mode==='來人'?'來人':'追蹤聯繫')+'」，並在客戶卡片標示撞客，由主管判定歸屬。</div>',
+    function(){
+      var note=$('asNote').value.trim();
+      if(!note){ alert('請填寫接觸情形'); return false; }
+      api({action:'addEvent',cid:cid,mode:(mode==='來人'?'到場':'追蹤'),note:note}).then(function(r){
+        if(!r.ok){ alert('儲存失敗：'+(r.error||'')); return; }
+        closeModal();
+        alert('已記錄。系統已標示撞客，主管會在對客資時處理歸屬。');
+        reload();
+      });
+      return 'wait';
+    }
+  );
+}
+function submitNew(){
+  var mode=S.newMode||'來電';
+  var ph=$('nPhone').value.trim(), nm=$('nName').value.trim();
+  if(!ph||!nm){ alert('請填寫電話與姓名'); return false; }
+  if(S.dupHit && S.dupHit.type==='main'){ alert('此電話已建檔，請直接開啟該客戶'); return false; }
+  var need=[['nArea','居住區域'],['nMedia','媒體來源'],['nMotive','購屋用途']];
+  if(mode==='來人'){
+    need=need.concat([['nAge','年齡層'],['nJob','客戶職業'],['nGrade','客戶等級'],
+      ['nRoom','需求房數'],['nLand','需求地坪'],['nBuild','需求建坪'],['nPark','需求車位'],['nBudget','預算範圍']]);
+  }
+  var miss=need.filter(function(x){ var e=$(x[0]); return !e||!e.value; }).map(function(x){ return x[1]; });
+  var note=$('nNote').value.trim();
+  if(mode==='來人' && !note) miss.push('客戶狀況');
+  if(miss.length){ alert('請填寫：\n'+miss.join('、')); return false; }
+  function g(id){ var e=$(id); return e?e.value:''; }
+  var link = (S.dupHit && S.dupHit.type==='contact') ? S.dupHit.r['客戶ID'] : '';
+  var o=$('nOwner');
+  api({action:'addClient',mode:mode,force:!!link,linkFrom:link,phone:ph,name:nm,
+       area:g('nArea'),media:g('nMedia'),motive:g('nMotive'),
+       age:g('nAge'),job:g('nJob'),note:note,
+       assignee:(mode==='來人')?'':(o?o.value:'')})
+  .then(function(res){
+    if(res.exists){
+      alert('此電話已建檔\n\n'+(res.client['客戶姓名']||'')+'　'+(res.client['客戶階段']||''));
+      closeModal(); openDetail(res.client['客戶ID']); return;
+    }
+    if(!res.ok){ alert('建立失敗：'+(res.error||'')); return; }
+    var after=function(){ closeModal(); reload(); openDetail(res.cid); };
+    var extra={};
+    ['nGrade','nRoom','nLand','nBuild','nPark','nBudget'].forEach(function(id){
+      var e=$(id); if(!e||!e.value) return;
+      var map={nGrade:'客戶等級',nRoom:'需求房數',nLand:'需求地坪',nBuild:'需求建坪',nPark:'需求車位',nBudget:'預算範圍'};
+      extra[map[id]]=e.value;
+    });
+    var jobs=[];
+    if(Object.keys(extra).length) jobs.push(api({action:'updClient',cid:res.cid,data:extra}));
+    if(link) jobs.push(api({action:'link',cidA:res.cid,cidB:link}));
+    if(jobs.length) Promise.all(jobs).then(after); else after();
+  });
+  return 'wait';
+}
+function staffOpts(){
+  return staffList().map(function(n){return '<option>'+esc(n)+'</option>';}).join('');
+}
+
+// ===================== 編輯 =====================
+function openEdit(){
+  var c=S.cur.client;
+  function f(k,type){ return '<div class="field"><label>'+k+'</label><input type="'+(type||'text')+'" id="e_'+k+'" value="'+esc(c[k]||'')+'"></div>'; }
+  function s(k,dic){ return '<div class="field"><label>'+k+'</label><select id="e_'+k+'">'+opts(dic||k,c[k]||'','未填')+'</select></div>'; }
+  var 戶別=String(S.config['戶別清單']||'').split(/[,、]/).map(function(x){return x.trim();}).filter(Boolean);
+  var 已選=String(c['介紹戶別']||'').split(/[,、]/).map(function(x){return x.trim();}).filter(Boolean);
+  modal('編輯客戶資料','改的是客戶目前的資料；已報出去的統計數字不會變動',
+    '<div class="sec-h" style="margin-top:0">基本</div>'+
+    '<div class="two">'+f('客戶姓名')+f('主要電話','tel')+'</div>'+
+    '<div class="field"><label>相關聯絡人</label><div id="ctList"></div>'+
+      '<button class="btn btn-ghost btn-sm" onclick="addCt()" type="button">＋ 新增聯絡人</button></div>'+
+    '<div class="sec-h">客戶輪廓</div>'+
+    '<div class="two">'+s('居住區域')+f('居住地址')+s('客戶職業')+s('年齡層')+s('媒體來源')+s('購屋用途')+f('電子郵件','email')+'</div>'+
+    '<div class="sec-h">需求</div>'+
+    '<div class="two">'+s('需求房數')+s('需求地坪')+s('需求建坪')+s('需求車位')+s('預算範圍')+'</div>'+
+    '<div class="field"><label>介紹戶別</label><input type="text" id="unitKw" placeholder="搜尋戶別" oninput="drawUnits()">'+
+      '<div id="unitBox" class="units"></div></div>'+
+    '<div class="sec-h">狀態（顯示目前紀錄，有變動再改）</div>'+
+    '<div class="two">'+s('客戶等級')+s('成交狀態')+f('約定到場日','date')+'</div>',
+    function(){
+      var keys=['客戶姓名','主要電話','居住區域','居住地址','客戶職業','年齡層',
+        '媒體來源','購屋用途','電子郵件','需求房數','需求地坪','需求建坪','需求車位','預算範圍',
+        '客戶等級','成交狀態','約定到場日'];
+      var data={};
+      keys.forEach(function(k){ var e=$('e_'+k); if(e) data[k]=e.value; });
+      if(!String(data['主要電話']||'').trim()){ alert('主要電話不可空白'); return false; }
+      if(!String(data['客戶姓名']||'').trim()){ alert('客戶姓名不可空白'); return false; }
+      data['相關聯絡人']=collectCt();
+      data['介紹戶別']=S.units.join('、');
+      api({action:'updClient',cid:c['客戶ID'],data:data}).then(function(res){
+        if(!res.ok){ alert('儲存失敗：'+(res.error||'')); return; }
+        closeModal(); openDetail(c['客戶ID']); reload();
+      });
+      return 'wait';
+    }
+  );
+  S.units=已選; S.unitAll=戶別;
+  var 現有=String(c['相關聯絡人']||'').split('\n').filter(Boolean);
+  S.cts = 現有.length ? 現有.map(function(line){
+    var p=line.split('/').map(function(x){return x.trim();});
+    return {name:p[0]||'', rel:p[1]||'', tel:p[2]||''};
+  }) : [];
+  drawCt(); drawUnits();
+}
+function drawCt(){
+  var box=$('ctList'); if(!box) return;
+  box.innerHTML=S.cts.map(function(x,i){
+    return '<div class="ct-row">'+
+      '<input type="text" placeholder="姓名" value="'+esc(x.name)+'" oninput="S.cts['+i+'].name=this.value">'+
+      '<input type="text" placeholder="關係" value="'+esc(x.rel)+'" oninput="S.cts['+i+'].rel=this.value">'+
+      '<input type="tel" placeholder="電話" value="'+esc(x.tel)+'" oninput="S.cts['+i+'].tel=this.value">'+
+      '<button class="ct-x" type="button" onclick="delCt('+i+')">✕</button></div>';
+  }).join('') || '<div class="hint">還沒有其他聯絡人</div>';
+}
+function addCt(){ S.cts.push({name:'',rel:'',tel:''}); drawCt(); }
+function delCt(i){ S.cts.splice(i,1); drawCt(); }
+function collectCt(){
+  return S.cts.filter(function(x){ return x.name||x.tel; })
+    .map(function(x){ return [x.name,x.rel,x.tel].join(' / '); }).join('\n');
+}
+function drawUnits(){
+  var box=$('unitBox'); if(!box) return;
+  var kw=($('unitKw')||{}).value||'';
+  var list=S.unitAll.filter(function(u){ return !kw || u.toLowerCase().indexOf(kw.toLowerCase())>=0; });
+  box.innerHTML=list.length ? list.map(function(u){
+    var on=S.units.indexOf(u)>=0;
+    return '<button type="button" class="unit'+(on?' on':'')+'" onclick="tapUnit(\''+u+'\')">'+esc(u)+'</button>';
+  }).join('') : '<div class="hint">找不到戶別</div>';
+}
+function tapUnit(u){
+  var i=S.units.indexOf(u);
+  if(i>=0) S.units.splice(i,1); else S.units.push(u);
+  drawUnits();
+}
+
+// ===================== 彈窗 =====================
+function modal(title,sub,body,onOk){
+  $('modal').innerHTML=
+    '<div class="mask" onclick="if(event.target===this)closeModal()"><div class="sheet">'+
+      '<h2>'+title+'</h2><div class="sub">'+sub+'</div>'+body+
+      '<div class="sheet-acts"><button class="btn btn-ghost" onclick="closeModal()">取消</button>'+
+      '<button class="btn" id="mOk">儲存</button></div>'+
+    '</div></div>';
+  $('mOk').onclick=function(){
+    var r=onOk();
+    if(r==='wait'){ $('mOk').disabled=true; $('mOk').textContent='儲存中…'; }
+  };
+}
+function closeModal(){ $('modal').innerHTML=''; }
+</script>
+</body>
+</html>
