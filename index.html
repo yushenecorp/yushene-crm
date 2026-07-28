@@ -369,7 +369,7 @@ button{cursor:pointer;border:none;background:none}
     <div class="top-case"><span id="caseName"></span><small id="whoLine"></small></div>
     <div class="top-sp"></div>
     <button class="icon-btn" onclick="reload()" title="重新整理">↻</button>
-    <button class="btn btn-ghost btn-sm" onclick="backToPicker()">換案場</button>
+    <button class="btn btn-ghost btn-sm hidden" id="switchCase" onclick="backToPicker()">換案場</button>
     <button class="btn btn-ghost btn-sm" onclick="logout()">登出</button>
   </div></div>
 
@@ -732,7 +732,7 @@ function loadRpt(){
 }
 function drawRpt(){
   var r=S.rpt;
-  var 類=['名單進件','來電','來人','回訪'];
+  var 類 = r.個人版 ? ['來電','來人','回訪'] : ['名單進件','來電','來人','回訪'];
   var 別名={'名單進件':'網路預約','來電':'來電','來人':'來人','回訪':'回訪'};
   var h='';
   h+='<div class="stat">'+類.map(function(t){
@@ -768,12 +768,12 @@ function drawRpt(){
       }).join('')+'</tbody></table>';
   });
 
-  h+='<div class="sec-h">成交狀態</div><div class="stat">'+
+  h+='<div class="sec-h">成交狀態（目前狀態，不隨區間變動）</div><div class="stat">'+
     ['未成交','已小訂','已補足','已簽約','已退戶'].map(function(k){
       return '<div class="stat-c"><div class="stat-l">'+k+'</div><div class="stat-v">'+(r.成交[k]||0)+'</div></div>';
     }).join('')+'</div>';
 
-  h+='<div class="sec-h">有望客戶（A級）'+r.有望.length+' 組'+(r.個人版?'':'<button class="cpx" onclick="copyHope()">複製</button>')+'</div>'+
+  h+='<div class="sec-h">有望客戶（A級，目前狀態）'+r.有望.length+' 組'+(r.個人版?'':'<button class="cpx" onclick="copyHope()">複製</button>')+'</div>'+
     (r.有望.length?'<table class="rt"><thead><tr><th>客戶</th><th>介紹戶別</th><th>階段</th><th>業務</th><th>最後互動</th></tr></thead><tbody>'+
       r.有望.map(function(x){
         return '<tr><td>'+esc(x.name)+'</td><td>'+esc(x.unit||'—')+'</td><td>'+esc(x.stage)+'</td><td>'+esc(x.owner||'—')+'</td><td>'+esc(x.last||'—')+'</td></tr>';
@@ -951,6 +951,8 @@ function enterCase(c){
 }
 function applyPerm(){
   var u=S.user||{};
+  var sc=$('switchCase');
+  if(sc) sc.classList.toggle('hidden', (S.cases||[]).length<2);
   document.querySelectorAll('.p-all').forEach(function(e){ e.classList.toggle('hidden', !u.canSeeAll); });
   document.querySelectorAll('.p-dis').forEach(function(e){ e.classList.toggle('hidden', !u.canDispatch); });
   document.querySelectorAll('.p-mgr').forEach(function(e){ e.classList.toggle('hidden', !u.canManageUsers); });
