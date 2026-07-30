@@ -204,6 +204,8 @@ button{cursor:pointer;border:none;background:none}
 #revWho{padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:var(--card);font-size:13px;outline:none}
 .rc-msg.ok{color:var(--s-visit)}
 .rc-msg.err{color:var(--danger)}
+.saved{display:inline-block;background:var(--s-visit-bg);color:var(--s-visit);padding:2px 10px;border-radius:20px;font-weight:700;font-size:11.5px}
+.savefail{display:inline-block;background:var(--danger-bg);color:var(--danger);padding:2px 10px;border-radius:20px;font-weight:700;font-size:11.5px}
 .rf{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);margin-bottom:6px;cursor:pointer;font-size:13.5px}
 .rf:hover{border-color:var(--ink-3)}
 .rf-n{font-weight:600}
@@ -693,11 +695,16 @@ function followRow(x){
 function saveEv(eid,id){
   var note=$(id+'_n').value, boss=$(id+'_b').value;
   var msg=$(id+'_m');
-  msg.textContent='儲存中…';
+  msg.textContent='儲存中…'; msg.className='rc-msg';
   api({action:'updEvent',eid:eid,note:note,boss:boss}).then(function(r){
-    msg.textContent = r.ok ? '已儲存' : ('儲存失敗：'+(r.error||''));
-    msg.className = 'rc-msg'+(r.ok?' ok':' err');
-    if(r.ok) setTimeout(function(){ msg.textContent=''; },1800);
+    if(r.ok){
+      msg.innerHTML='<span class="saved">✓ 已儲存</span>';
+      msg.className='rc-msg ok';
+      setTimeout(function(){ msg.innerHTML=''; msg.className='rc-msg'; },3500);
+    } else {
+      msg.innerHTML='<span class="savefail">✕ 儲存失敗：'+esc(r.error||'')+'　請重試</span>';
+      msg.className='rc-msg err';
+    }
   });
 }
 
@@ -1059,11 +1066,29 @@ function render(){
     }
     return true;
   });
-  out.sort(function(a,b){
-    var da=String(a['下次追蹤日']||'9999'), db=String(b['下次追蹤日']||'9999');
-    if(da!==db) return da<db?-1:1;
-    return String(b['最後互動日']||'')<String(a['最後互動日']||'')?-1:1;
-  });
+  // 各分頁用對應用途的排序
+  if(S.tab==='due'){
+    // 今日該追：最急的先（追蹤日早→晚）
+    out.sort(function(a,b){
+      var da=String(a['下次追蹤日']||'9999'), db=String(b['下次追蹤日']||'9999');
+      if(da!==db) return da<db?-1:1;
+      return String(a['最後互動日']||'')<String(b['最後互動日']||'')?-1:1;
+    });
+  } else if(S.tab==='pend'){
+    // 待派工：放最久的先派（建檔日舊→新）
+    out.sort(function(a,b){
+      var da=String(a['建檔日']||'9999'), db=String(b['建檔日']||'9999');
+      if(da!==db) return da<db?-1:1;
+      return String(a['客戶ID']||'')<String(b['客戶ID']||'')?-1:1;
+    });
+  } else {
+    // 全部客戶：剛動過的在最前（最後互動日新→舊）
+    out.sort(function(a,b){
+      var da=String(a['最後互動日']||''), db=String(b['最後互動日']||'');
+      if(da!==db) return da>db?-1:1;
+      return String(a['客戶姓名']||'')<String(b['客戶姓名']||'')?-1:1;
+    });
+  }
   // 篩選狀態
   var 名={fStage:'階段',fGrade:'等級',fArea:'區域',fMedia:'媒體',fDeal:'成交',fOwner:'業務'};
   var 用=[];
@@ -1760,8 +1785,7 @@ function tapEvNo(n){
 
 // ===================== 建客戶 =====================
 function openNew(){
-  var 可派 = !!S.user.canDispatch;
-  modal('建立客戶','輸入電話後會立即查重',
+  modal('建立客戶','這是你接到的客戶，建立後會掛在你名下',
     '<div class="field"><label>這位客戶怎麼來的？ <span class="req">*</span></label>'+
       '<div class="segs">'+
         '<button class="seg on" data-mode="來電" onclick="pickMode(this)">打電話進來</button>'+
@@ -1777,7 +1801,7 @@ function openNew(){
       '<div class="field"><label>居住區域 <span class="req">*</span></label><select id="nArea">'+opts('居住區域','','請選擇')+'</select></div>'+
       '<div class="field"><label>媒體來源 <span class="req">*</span></label><select id="nMedia">'+opts('媒體來源','','請選擇')+'</select></div>'+
       '<div class="field"><label>購屋用途 <span class="req">*</span></label><select id="nMotive">'+opts('購屋用途','','請選擇')+'</select></div>'+
-      (可派?'<div class="field n-call"><label>指派給</label><select id="nOwner"><option value="">先不指派（進待派工）</option>'+staffList().map(function(n){return '<option>'+esc(n)+'</option>';}).join('')+'</select></div>':'')+
+
     '</div>'+
     '<div class="n-visit hidden">'+
       '<div class="sec-h">客戶已到現場，以下請完整填寫</div>'+
@@ -1882,11 +1906,10 @@ function submitNew(){
   if(miss.length){ alert('請填寫：\n'+miss.join('、')); return false; }
   function g(id){ var e=$(id); return e?e.value:''; }
   var link = (S.dupHit && S.dupHit.type==='contact') ? S.dupHit.r['客戶ID'] : '';
-  var o=$('nOwner');
   api({action:'addClient',mode:mode,force:!!link,linkFrom:link,phone:ph,name:nm,
        area:g('nArea'),media:g('nMedia'),motive:g('nMotive'),
        age:g('nAge'),job:g('nJob'),note:note,
-       assignee:(mode==='來人')?'':(o?o.value:'')})
+       assignee:''})
   .then(function(res){
     if(res.exists){
       alert('此電話已建檔\n\n'+(res.client['客戶姓名']||'')+'　'+(res.client['客戶階段']||''));
