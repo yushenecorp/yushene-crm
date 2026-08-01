@@ -245,6 +245,8 @@ button{cursor:pointer;border:none;background:none}
 .cbl b{font-weight:650}
 /* 匯入預覽與說明 */
 .note-box{background:var(--brass-soft);border-radius:var(--r);padding:12px 14px;font-size:12.5px;color:#6B5220;line-height:1.7;margin-bottom:14px}
+.warn-box{background:var(--danger-bg);border-left:3px solid var(--danger);border-radius:var(--r);padding:12px 14px;font-size:13px;color:var(--danger);line-height:1.8;margin:14px 0}
+.warn-box b{font-weight:700}
 .note-box .btn{margin-top:8px}
 .prev{border:1px solid var(--line);border-radius:var(--r);margin:10px 0;overflow:hidden}
 .prev-row{padding:8px 12px;border-bottom:1px solid var(--line-2);font-size:13px;background:var(--card)}
@@ -382,7 +384,7 @@ button{cursor:pointer;border:none;background:none}
         <div class="tab on" data-tab="all" onclick="setTab('all')">全部客戶</div>
         <div class="tab" data-tab="due" onclick="setTab('due')">今日該追</div>
         <div class="tab p-dis hidden" data-tab="pend" onclick="setTab('pend')">待派工<span id="pendN"></span></div>
-        <div class="tab p-all hidden" data-tab="imp" onclick="setTab('imp')">匯入名單</div>
+        <div class="tab p-all hidden" data-tab="imp" onclick="setTab('imp')">廠商名單</div>
         <div class="tab p-all hidden" data-tab="rev" onclick="setTab('rev')">對客資</div>
         <div class="tab" data-tab="rpt" onclick="setTab('rpt')">報表</div>
         <div class="tab p-mgr hidden" data-tab="cfg" onclick="setTab('cfg')">設定</div>
@@ -390,7 +392,7 @@ button{cursor:pointer;border:none;background:none}
       <div class="search-row">
         <input type="text" id="kw" placeholder="搜尋姓名、電話、紀錄內容…" oninput="render()">
         <button class="btn btn-ghost p-dis hidden" id="selBtn" onclick="toggleSelMode()">批次改派</button>
-        <button class="btn" onclick="openNew()">＋ 建客戶</button>
+        <button class="btn" onclick="openNew()" title="客人打電話進來或直接走進來時用">＋ 建客戶</button>
       </div>
       <div class="filters" id="filters"></div>
       <div class="fbar hidden" id="fbar"><span id="fbarTxt"></span><button class="fclear" onclick="clearFilters()">清除篩選</button></div>
@@ -406,12 +408,14 @@ button{cursor:pointer;border:none;background:none}
       </div>
       <div id="impView" class="hidden">
         <div class="segs" style="margin:14px 0">
-          <button class="seg on" data-imp="quick" onclick="pickImp(this)">網路名單（一筆一筆建）</button>
+          <button class="seg on" data-imp="quick" onclick="pickImp(this)">廠商給的網路名單</button>
           <button class="seg p-dis hidden" data-imp="bulk" onclick="pickImp(this)">舊名單（批次匯入）</button>
         </div>
 
         <div id="impQuick">
-          <div class="sec-h">建立網路名單</div>
+          <div class="warn-box">⚠　這裡只放<b>廠商交來的名單</b>（客人還沒接觸過，會進待派工）。<br>
+            客人自己<b>打電話進來</b>、或<b>直接走進來</b> → 請回「全部客戶」用右上角<b>「＋ 建客戶」</b>。</div>
+          <div class="sec-h">建立廠商名單</div>
           <div class="two">
             <div class="field"><label>姓名 <span class="req">*</span></label><input type="text" id="qName"></div>
             <div class="field"><label>電話 <span class="req">*</span></label><input type="tel" id="qPhone" oninput="qDup()"></div>
@@ -1137,7 +1141,7 @@ function card(r){
       (r['最後互動日']?'<span><b>最後</b> '+esc(r['最後互動日'])+'</span>':'')+
       (due?'<span class="'+(od?'c-due':'')+'"><b>該追</b> '+esc(due)+'</span>':'')+
     '</div>'+
-    (r['歷史背景']?'<div class="c-last"><em>舊名單</em>'+esc(String(r['歷史背景']).slice(0,90))+'</div>':'')+
+    (r['歷史背景']?'<div class="c-last"><em>'+(String(r['名單來源']||'').trim()==='舊名單'?'舊名單':'備註')+'</em>'+esc(String(r['歷史背景']).slice(0,90))+'</div>':'')+
   '</div>';
 }
 
