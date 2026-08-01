@@ -966,10 +966,10 @@ function applyPerm(){
   document.querySelectorAll('.mgr').forEach(function(e){ e.classList.toggle('hidden', !u.canSeeAll); });
 }
 function reload(){
-  api({action:'getClients'}).then(function(r){
+  return api({action:'getClients'}).then(function(r){
     if(!r.ok) return;
     S.rows=r.rows; buildFilters(); render();
-  }).catch(function(){});
+  }).catch(function(){ /* 本地已即時更新，靜默即可 */ });
 }
 
 // ===================== 篩選 =====================
@@ -1185,10 +1185,12 @@ function openAssign(){
     function(){
       var who=$('asWho').value;
       if(who===現){ closeModal(); return false; }
-      api({action:'assign',cids:[c['客戶ID']],assignee:who}).then(function(r){
+      api({action:'assign',cids:[c['客戶ID']],assignee:who,allowClear:true}).then(function(r){
         if(!r.ok){ alert('改派失敗：'+(r.error||'')); return; }
+        // 本地即時反映
+        S.rows.forEach(function(x){ if(String(x['客戶ID']).trim()===String(c['客戶ID']).trim()) x['業務歸屬']=who; });
         closeModal(); openDetail(c['客戶ID']); reload();
-      });
+      }).catch(function(){ alert('改派時連線出問題，請重新整理確認'); });
       return 'wait';
     }
   );
@@ -1223,13 +1225,23 @@ function drawBulk(){
 function doBulk(){
   var who=$('bulkWho').value;
   if(!who){ alert('請選擇要分派給誰'); return; }
+  if(!S.sel.length){ alert('請先點卡片勾選要分派的客戶'); return; }
   var w2=(who==='__clear__')?'':who;
-  if(!confirm('把 '+S.sel.length+' 筆'+(w2?('分派給 '+w2):'的業務歸屬清空')+'？')) return;
-  api({action:'assign',cids:S.sel,assignee:w2,allowClear:true}).then(function(res){
+  var ids=S.sel.slice();                       // 先複製，避免中途被清掉
+  if(!confirm('把 '+ids.length+' 筆'+(w2?('分派給 '+w2):'的業務歸屬清空')+'？')) return;
+  api({action:'assign',cids:ids,assignee:w2,allowClear:true}).then(function(res){
     if(!res.ok){ alert('分派失敗：'+(res.error||'')); return; }
+    // 本地立即反映，不等 reload——reload 萬一失敗畫面也不會停在舊狀態
+    S.rows.forEach(function(r){
+      if(ids.indexOf(String(r['客戶ID']).trim())>=0) r['業務歸屬']=w2;
+    });
     S.sel=[]; S.selMode=false;
     var b=$('selBtn'); if(b) b.textContent='批次改派';
+    buildFilters(); render();
+    alert('已'+(w2?('分派 '+ids.length+' 筆給 '+w2):('清空 '+ids.length+' 筆的業務歸屬')));
     reload();
+  }).catch(function(){
+    alert('分派時連線出問題，請按重新整理確認結果');
   });
 }
 
