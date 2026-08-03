@@ -247,6 +247,8 @@ button{cursor:pointer;border:none;background:none}
 .note-box{background:var(--brass-soft);border-radius:var(--r);padding:12px 14px;font-size:12.5px;color:#6B5220;line-height:1.7;margin-bottom:14px}
 .warn-box{background:var(--danger-bg);border-left:3px solid var(--danger);border-radius:var(--r);padding:12px 14px;font-size:13px;color:var(--danger);line-height:1.8;margin:14px 0}
 .warn-box b{font-weight:700}
+.mini-link{font-size:11.5px;color:var(--ink-3);text-decoration:underline;margin-left:8px;background:none;border:none;padding:0;font-weight:500}
+.mini-link:hover{color:var(--ink)}
 .note-box .btn{margin-top:8px}
 .prev{border:1px solid var(--line);border-radius:var(--r);margin:10px 0;overflow:hidden}
 .prev-row{padding:8px 12px;border-bottom:1px solid var(--line-2);font-size:13px;background:var(--card)}
@@ -1808,10 +1810,14 @@ function openNew(){
         '<button class="seg" data-mode="來人" onclick="pickMode(this)">直接走進來</button>'+
       '</div></div>'+
     '<div class="two">'+
-      '<div class="field"><label>聯絡電話 <span class="req">*</span></label>'+
+      '<div class="field"><label>聯絡電話 <span class="req" id="phReq">*</span>'+
+        '<button type="button" class="mini-link" onclick="toggleNoPhone()">沒有電話？</button></label>'+
         '<input type="tel" id="nPhone" placeholder="0912345678" oninput="dupCheck()"></div>'+
-      '<div class="field"><label>客戶姓名 <span class="req">*</span></label><input type="text" id="nName"></div>'+
+      '<div class="field"><label>客戶姓名 <span class="req">*</span></label><input type="text" id="nName" oninput="dupCheck()"></div>'+
     '</div>'+
+    '<div class="field hidden" id="noPhoneBox"><label>未留電話原因 <span class="req">*</span></label>'+
+      '<input type="text" id="nNoPhone" placeholder="例：業主陳先生的朋友，只留LINE abc123">'+
+      '<div class="hint">之後拿到電話，用「編輯資料」補上就好。</div></div>'+
     '<div id="dupBox"></div>'+
     '<div class="two">'+
       '<div class="field"><label>居住區域 <span class="req">*</span></label><select id="nArea">'+opts('居住區域','','請選擇')+'</select></div>'+
@@ -1845,6 +1851,14 @@ function pickMode(el){
   document.querySelectorAll('.n-visit').forEach(function(e){ e.classList.toggle('hidden', !到場); });
   document.querySelectorAll('.n-call').forEach(function(e){ e.classList.toggle('hidden', 到場); });
 }
+function toggleNoPhone(){
+  var box=$('noPhoneBox'); if(!box) return;
+  var 開=box.classList.contains('hidden');
+  box.classList.toggle('hidden', !開);
+  var req=$('phReq'); if(req) req.style.visibility = 開?'hidden':'visible';
+  if(開){ $('nNoPhone').focus(); } else { $('nNoPhone').value=''; }
+  dupCheck();
+}
 function normPhone(v){
   var s=String(v||'').trim(), ext='';
   var em=s.match(/[#＃]\s*(\d+)\s*$/); if(em){ ext=em[1]; s=s.slice(0,em.index); }
@@ -1858,7 +1872,26 @@ function dupCheck(){
   var box=$('dupBox'); if(!box) return;
   var ph=basePhone($('nPhone').value);
   S.dupHit=null;
-  if(ph.length<8){ box.innerHTML=''; return; }
+  var 無電話模式=$('noPhoneBox') && !$('noPhoneBox').classList.contains('hidden');
+  if(ph.length<8){
+    box.innerHTML='';
+    // 無電話時改用姓名比對，只提示不擋
+    if(無電話模式){
+      var nm=String(($('nName')||{}).value||'').trim();
+      if(nm.length>=2){
+        var 同名=S.rows.filter(function(r){ return String(r['客戶姓名']||'').indexOf(nm)>=0; }).slice(0,3);
+        if(同名.length){
+          box.innerHTML='<div class="dup dup-warn"><b>有同名客戶，請確認是不是同一位</b>'+
+            同名.map(function(r){
+              return esc(r['客戶姓名'])+'・'+esc(r['客戶階段']||'')+'・'+esc(r['業務歸屬']||'未指派')+
+                '<button type="button" class="btn btn-sm btn-ghost" onclick="closeModal();openDetail(\''+r['客戶ID']+'\')">開啟</button>';
+            }).join('<br>')+
+            '<br>不同人的話直接建立即可。</div>';
+        }
+      }
+    }
+    return;
+  }
   var main=null, ct=null;
   S.rows.forEach(function(r){
     if(basePhone(r['主要電話'])===ph){ main=r; }
@@ -1909,7 +1942,13 @@ function alsoServed(cid,name){
 function submitNew(){
   var mode=S.newMode||'來電';
   var ph=$('nPhone').value.trim(), nm=$('nName').value.trim();
-  if(!ph||!nm){ alert('請填寫電話與姓名'); return false; }
+  var 無電話模式=$('noPhoneBox') && !$('noPhoneBox').classList.contains('hidden');
+  var 原因=無電話模式 ? $('nNoPhone').value.trim() : '';
+  if(!nm){ alert('請填寫客戶姓名'); return false; }
+  if(!ph){
+    if(!無電話模式){ alert('請填寫電話。真的沒有電話，請點電話欄旁的「沒有電話？」說明原因'); return false; }
+    if(!原因){ alert('請說明未留電話的原因'); return false; }
+  }
   if(S.dupHit && S.dupHit.type==='main'){ alert('此電話已建檔，請直接開啟該客戶'); return false; }
   var need=[['nArea','居住區域'],['nMedia','媒體來源'],['nMotive','購屋用途']];
   if(mode==='來人'){
@@ -1922,7 +1961,7 @@ function submitNew(){
   if(miss.length){ alert('請填寫：\n'+miss.join('、')); return false; }
   function g(id){ var e=$(id); return e?e.value:''; }
   var link = (S.dupHit && S.dupHit.type==='contact') ? S.dupHit.r['客戶ID'] : '';
-  api({action:'addClient',mode:mode,force:!!link,linkFrom:link,phone:ph,name:nm,
+  api({action:'addClient',mode:mode,force:!!link,linkFrom:link,phone:ph,name:nm,noPhoneReason:原因,
        area:g('nArea'),media:g('nMedia'),motive:g('nMotive'),
        age:g('nAge'),job:g('nJob'),note:note,
        assignee:''})
@@ -1976,7 +2015,10 @@ function openEdit(){
         '客戶等級','成交狀態','約定到場日'];
       var data={};
       keys.forEach(function(k){ var e=$('e_'+k); if(e) data[k]=e.value; });
-      if(!String(data['主要電話']||'').trim()){ alert('主要電話不可空白'); return false; }
+      if(String(c['主要電話']||'').trim() && !String(data['主要電話']||'').trim()){
+        alert('已經有電話的客戶不可清空電話');
+        return false;
+      }
       if(!String(data['客戶姓名']||'').trim()){ alert('客戶姓名不可空白'); return false; }
       data['相關聯絡人']=collectCt();
       data['介紹戶別']=S.units.join('、');
