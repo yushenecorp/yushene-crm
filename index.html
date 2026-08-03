@@ -268,7 +268,11 @@ button{cursor:pointer;border:none;background:none}
 .dtag-on{background:var(--s-track-bg);color:var(--s-track)}
 .dtag-off{background:var(--danger-bg);color:var(--danger)}
 .ditem{display:flex;gap:8px;align-items:center;margin-bottom:6px}
-.ditem input{flex:1;padding:8px 11px;border:1px solid var(--line);border-radius:8px;font-size:14px;outline:none;background:var(--card)}
+.ditem input{flex:1;padding:8px 11px;border:1px solid var(--line);border-radius:8px;font-size:14px;outline:none;background:var(--card);min-width:0}
+.dord{font-size:11px;color:var(--ink-3);width:20px;text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums}
+.dmv{width:28px;height:30px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink-2);font-size:11px;flex-shrink:0;line-height:1}
+.dmv:hover:not(:disabled){border-color:var(--ink);background:var(--line-2)}
+.dmv:disabled{opacity:.25;cursor:default}
 .ditem input:focus{border-color:var(--ink)}
 .ditem.off input{opacity:.5;text-decoration:line-through}
 .copy-x{font-size:12px;color:var(--ink-3);padding:6px 10px;border:1px solid var(--line);border-radius:7px;white-space:nowrap;background:var(--card)}
@@ -915,7 +919,7 @@ function doLogin(){
 }
 function initState(){
   return { token:null, user:null, cases:[], caseCode:null, caseName:'', dict:{}, config:{}, rows:[],
-    tab:'all', cur:null, scrollY:0, newMode:'來電', cts:[], units:[], unitAll:[],
+    tab:'all', cur:null, scrollY:0, newMode:'來電', cts:[], units:[], unitAll:[], nUnits:[], nNo:[],
     sel:[], selMode:false, staff:[], evUnits:[], evUnitAll:[], evNo:[],
     impMode:'名單進件', dupHit:null, qHit:null, qN:0,
     cfgLoaded:false, voidLoaded:false, voidRows:[], exFmt:'csv', dictFull:{}, dictOrder:[], curDict:'', users:[],
@@ -1410,7 +1414,8 @@ function openDict(d){
   S.curDict=d;
   var a=S.dictFull[d]||[];
   modal('編輯「'+d+'」', (CASE_DIC.indexOf(d)>=0?'案場可調 — 改這裡只影響本案場':'全公司固定 — 改了會影響跨案比較'),
-    '<div id="dItems">'+a.map(dictRow).join('')+'</div>'+
+    '<div id="dItems">'+a.map(function(x,i){return dictRow(x,i,a.length);}).join('')+'</div>'+
+    '<div class="hint" style="margin-top:10px">⤒ 移到最前　▲▼ 上下移動　順序會直接反映在所有下拉選單</div>'+
     '<div class="field" style="margin-top:12px"><label>新增選項</label>'+
       '<div class="addrow"><input type="text" id="dNew" placeholder="輸入名稱後按新增">'+
       '<button type="button" class="btn btn-sm" onclick="dictAdd()">新增</button></div></div>',
@@ -1418,18 +1423,30 @@ function openDict(d){
   );
   var b=$('mOk'); if(b) b.textContent='完成';
 }
-function dictRow(x){
+function dictRow(x,i,n){
+  var 首=(i===0), 末=(i===n-1);
   return '<div class="ditem'+(x.on?'':' off')+'">'+
+    '<span class="dord">'+(i+1)+'</span>'+
     '<input type="text" value="'+esc(x.name)+'" onchange="dictRename('+x.row+',this.value)">'+
+    '<button type="button" class="dmv" title="移到最前"'+(首?' disabled':'')+' onclick="dictMove('+x.row+',\'top\')">⤒</button>'+
+    '<button type="button" class="dmv" title="上移"'+(首?' disabled':'')+' onclick="dictMove('+x.row+',\'up\')">▲</button>'+
+    '<button type="button" class="dmv" title="下移"'+(末?' disabled':'')+' onclick="dictMove('+x.row+',\'down\')">▼</button>'+
     '<button type="button" class="copy-x" onclick="dictToggle('+x.row+','+(x.on?'false':'true')+')">'+(x.on?'停用':'啟用')+'</button>'+
   '</div>';
+}
+function dictMove(row,dir){
+  api({action:'dictSave',op:'move',dict:S.curDict,row:row,dir:dir}).then(function(r){
+    if(!r.ok){ alert(r.error||'移動失敗'); return; }
+    refreshDict();
+  }).catch(function(){ alert('移動時連線出問題'); });
 }
 function refreshDict(){
   api({action:'dictList'}).then(function(r){
     if(!r.ok) return;
     S.dictFull=r.dict; S.dictOrder=r.order;
     S.dict={}; r.order.forEach(function(d){ S.dict[d]=(r.dict[d]||[]).filter(function(x){return x.on;}); });
-    var box=$('dItems'); if(box) box.innerHTML=(S.dictFull[S.curDict]||[]).map(dictRow).join('');
+    var box=$('dItems');
+    if(box){ var arr=S.dictFull[S.curDict]||[]; box.innerHTML=arr.map(function(x,i){return dictRow(x,i,arr.length);}).join(''); }
     drawDict();
   });
 }
@@ -1836,13 +1853,19 @@ function openNew(){
         '<div class="field"><label>需求建坪 <span class="req">*</span></label><select id="nBuild">'+opts('需求建坪','','請選擇')+'</select></div>'+
         '<div class="field"><label>需求車位 <span class="req">*</span></label><select id="nPark">'+opts('需求車位','','請選擇')+'</select></div>'+
         '<div class="field"><label>預算範圍 <span class="req">*</span></label><select id="nBudget">'+opts('預算範圍','','請選擇')+'</select></div>'+
+        '<div class="field"><label>成交狀態</label><select id="nDeal">'+opts('成交狀態','未成交','')+'</select></div>'+
       '</div>'+
+      '<div class="field"><label>介紹戶別（帶看了哪幾戶）</label>'+
+        '<input type="text" id="nUnitKw" placeholder="搜尋戶別" oninput="drawNUnits()">'+
+        '<div id="nUnitBox" class="units"></div></div>'+
+      '<div class="field"><label>未購因素（可複選，客戶有疑慮時填）</label>'+
+        '<div id="nNoBox" class="units"></div></div>'+
     '</div>'+
     '<div class="field"><label>客戶狀況<span class="n-visit hidden"> <span class="req">*</span></span></label>'+
       '<textarea id="nNote" rows="3" placeholder="這次接觸的內容"></textarea></div>',
     function(){ return submitNew(); }
   );
-  S.newMode='來電'; S.dupHit=null;
+  S.newMode='來電'; S.dupHit=null; S.nUnits=[]; S.nNo=[];
 }
 function pickMode(el){
   document.querySelectorAll('.seg').forEach(function(e){ e.classList.toggle('on', e===el); });
@@ -1850,6 +1873,38 @@ function pickMode(el){
   var 到場=(S.newMode==='來人');
   document.querySelectorAll('.n-visit').forEach(function(e){ e.classList.toggle('hidden', !到場); });
   document.querySelectorAll('.n-call').forEach(function(e){ e.classList.toggle('hidden', 到場); });
+  if(到場){ drawNUnits(); drawNNo(); }
+}
+function drawNUnits(){
+  var box=$('nUnitBox'); if(!box) return;
+  var all=String(S.config['戶別清單']||'').split(/[,、]/).map(function(x){return x.trim();}).filter(Boolean);
+  if(!all.length){ box.innerHTML='<div class="hint">案場設定裡還沒填戶別清單</div>'; return; }
+  var kw=($('nUnitKw')||{}).value||'';
+  var list=all.filter(function(u){ return !kw || u.toLowerCase().indexOf(kw.toLowerCase())>=0; });
+  box.innerHTML=list.length? list.map(function(u){
+    var on=(S.nUnits||[]).indexOf(u)>=0;
+    return '<button type="button" class="unit'+(on?' on':'')+'" onclick="tapNUnit(\''+u+'\')">'+esc(u)+'</button>';
+  }).join('') : '<div class="hint">找不到戶別</div>';
+}
+function tapNUnit(u){
+  if(!S.nUnits) S.nUnits=[];
+  var i=S.nUnits.indexOf(u);
+  if(i>=0) S.nUnits.splice(i,1); else S.nUnits.push(u);
+  drawNUnits();
+}
+function drawNNo(){
+  var box=$('nNoBox'); if(!box) return;
+  var a=S.dict['未購因素']||[];
+  box.innerHTML=a.map(function(o){
+    var on=(S.nNo||[]).indexOf(o.name)>=0;
+    return '<button type="button" class="unit'+(on?' on':'')+'" onclick="tapNNo(\''+o.name+'\')">'+esc(o.name)+'</button>';
+  }).join('');
+}
+function tapNNo(n){
+  if(!S.nNo) S.nNo=[];
+  var i=S.nNo.indexOf(n);
+  if(i>=0) S.nNo.splice(i,1); else S.nNo.push(n);
+  drawNNo();
 }
 function toggleNoPhone(){
   var box=$('noPhoneBox'); if(!box) return;
@@ -1963,25 +2018,26 @@ function submitNew(){
   var link = (S.dupHit && S.dupHit.type==='contact') ? S.dupHit.r['客戶ID'] : '';
   api({action:'addClient',mode:mode,force:!!link,linkFrom:link,phone:ph,name:nm,noPhoneReason:原因,
        area:g('nArea'),media:g('nMedia'),motive:g('nMotive'),
-       age:g('nAge'),job:g('nJob'),note:note,
-       assignee:''})
+       age:g('nAge'),job:g('nJob'),note:note,assignee:'',
+       grade:g('nGrade'),room:g('nRoom'),land:g('nLand'),
+       build:g('nBuild'),park:g('nPark'),budget:g('nBudget'),
+       deal:g('nDeal'),unit:(S.nUnits||[]).join('、'),noReason:(S.nNo||[]).join('、')})
   .then(function(res){
     if(res.exists){
       alert('此電話已建檔\n\n'+(res.client['客戶姓名']||'')+'　'+(res.client['客戶階段']||''));
       closeModal(); openDetail(res.client['客戶ID']); return;
     }
     if(!res.ok){ alert('建立失敗：'+(res.error||'')); return; }
-    var after=function(){ closeModal(); reload(); openDetail(res.cid); };
-    var extra={};
-    ['nGrade','nRoom','nLand','nBuild','nPark','nBudget'].forEach(function(id){
-      var e=$(id); if(!e||!e.value) return;
-      var map={nGrade:'客戶等級',nRoom:'需求房數',nLand:'需求地坪',nBuild:'需求建坪',nPark:'需求車位',nBudget:'預算範圍'};
-      extra[map[id]]=e.value;
-    });
-    var jobs=[];
-    if(Object.keys(extra).length) jobs.push(api({action:'updClient',cid:res.cid,data:extra}));
-    if(link) jobs.push(api({action:'link',cidA:res.cid,cidB:link}));
-    if(jobs.length) Promise.all(jobs).then(after); else after();
+    // 先關視窗再處理後續，避免任何一步失敗就卡在「儲存中…」
+    closeModal();
+    if(link){
+      api({action:'link',cidA:res.cid,cidB:link}).catch(function(){});
+    }
+    reload();
+    openDetail(res.cid);
+  }).catch(function(){
+    closeModal();
+    alert('建立時連線出問題，請到「全部客戶」搜尋電話確認是否已建立');
   });
   return 'wait';
 }
