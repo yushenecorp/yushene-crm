@@ -25,6 +25,10 @@ body{
   font-size:15px; line-height:1.6; -webkit-font-smoothing:antialiased;
 }
 .hidden{display:none!important}
+#busyBar{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;z-index:200;
+  background:var(--ink);color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;
+  box-shadow:0 6px 24px rgba(20,24,31,.28);animation:bfade .2s ease}
+@keyframes bfade{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
 button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 button{cursor:pointer;border:none;background:none}
 
@@ -503,6 +507,7 @@ button{cursor:pointer;border:none;background:none}
   </div>
 </div>
 
+<div id="busyBar" class="hidden">處理中…</div>
 <div id="modal"></div>
 
 <script>
@@ -873,13 +878,60 @@ var S = {};
 // ===================== 工具 =====================
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function 送出_(payload, 重試){
+  var ctl=(typeof AbortController!=='undefined')?new AbortController():null;
+  var to=setTimeout(function(){ if(ctl) ctl.abort(); }, 45000);
+  function 再試(){
+    return new Promise(function(res){ setTimeout(res,1200); }).then(function(){ return 送出_(payload, 重試-1); });
+  }
+  return fetch(API,{method:'POST',body:JSON.stringify(payload),signal:ctl?ctl.signal:undefined})
+    .then(function(r){
+      clearTimeout(to);
+      return r.text().then(function(t){
+        if(t.indexOf('DOCTYPE')>=0 || t.indexOf('<html')>=0){
+          if(重試>0) return 再試();
+          throw new Error('伺服器暫時無法回應');
+        }
+        try{ return JSON.parse(t); }
+        catch(e){ if(重試>0) return 再試(); throw new Error('回應格式錯誤'); }
+      });
+    })
+    .catch(function(e){
+      clearTimeout(to);
+      if(重試>0 && e.name!=='AbortError') return 再試();
+      throw e;
+    });
+}
+function 顯示忙碌_(on,txt){
+  var el=$('busyBar'); if(!el) return;
+  if(on && txt) el.textContent=txt;
+  el.classList.toggle('hidden', !on);
+}
 function api(body){
-  return fetch(API,{method:'POST',body:JSON.stringify(Object.assign({token:S.token,case:S.caseCode},body))})
-    .then(function(r){return r.json();})
+  var 首次=!S.warm;
+  var 慢=setTimeout(function(){
+    顯示忙碌_(true, 首次?'首次連線需要一點時間，請稍候…':'處理中…');
+  }, 2000);
+  return 送出_(Object.assign({token:S.token,case:S.caseCode},body), 2)
     .then(function(j){
+      clearTimeout(慢); 顯示忙碌_(false);
+      S.warm=true; S.lastCall=Date.now();
       if(j && !j.ok && /未授權|逾時/.test(j.error||'')){ alert('登入逾時，請重新登入'); logout(); throw new Error('auth'); }
       return j;
+    })
+    .catch(function(e){
+      clearTimeout(慢); 顯示忙碌_(false);
+      throw e;
     });
+}
+function 保溫_(){
+  if(!S.token) return;
+  if(Date.now()-(S.lastCall||0) > 210000){
+    送出_({action:'ping'},0).then(function(){ S.lastCall=Date.now(); }).catch(function(){});
+  }
+}
+function 預熱_(){
+  送出_({action:'ping'},1).then(function(){ S.warm=true; S.lastCall=Date.now(); }).catch(function(){});
 }
 function today(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function opts(name, cur, blank){
@@ -896,16 +948,25 @@ function stageCls(s){
 }
 
 S = initState();
+// 打開網頁就先叫醒後端，使用者打帳密時已在背景預熱
+setTimeout(預熱_, 100);
+// 保溫：每 2 分鐘檢查，閒置超過 3.5 分鐘就送一個輕量請求
+setInterval(保溫_, 120000);
+// 從背景切回來時也預熱一次（手機常見）
+document.addEventListener('visibilitychange', function(){
+  if(!document.hidden && S.token) 保溫_();
+});
 
 // ===================== 登入 =====================
 function doLogin(){
   var a=$('acc').value.trim(), p=$('pwd').value;
   if(!a||!p){ $('loginMsg').innerHTML='<div class="msg msg-err">請輸入帳號與密碼</div>'; return; }
   $('loginBtn').disabled=true; $('loginBtn').textContent='登入中…';
-  fetch(API,{method:'POST',body:JSON.stringify({action:'login',account:a,password:p})})
-    .then(function(r){return r.json();})
+  $('loginMsg').innerHTML='<div class="msg">'+(S.warm?'登入中…':'首次連線需要一點時間，請稍候…')+'</div>';
+  送出_({action:'login',account:a,password:p}, 2)
     .then(function(res){
       $('loginBtn').disabled=false; $('loginBtn').textContent='登入';
+      S.warm=true; S.lastCall=Date.now();
       if(!res.ok){ $('loginMsg').innerHTML='<div class="msg msg-err">'+esc(res.error)+'</div>'; return; }
       S.token=res.token; S.user=res.user; S.user.account=a; S.cases=res.cases||[];
       $('loginMsg').innerHTML='';
@@ -914,12 +975,12 @@ function doLogin(){
     })
     .catch(function(e){
       $('loginBtn').disabled=false; $('loginBtn').textContent='登入';
-      $('loginMsg').innerHTML='<div class="msg msg-err">連線失敗，請檢查網路</div>';
+      $('loginMsg').innerHTML='<div class="msg msg-err">'+esc(e.message||'連線失敗')+'　請再按一次登入</div>';
     });
 }
 function initState(){
   return { token:null, user:null, cases:[], caseCode:null, caseName:'', dict:{}, config:{}, rows:[],
-    tab:'all', cur:null, scrollY:0, newMode:'來電', cts:[], units:[], unitAll:[], nUnits:[], nNo:[],
+    tab:'all', cur:null, scrollY:0, warm:false, lastCall:0, newMode:'來電', cts:[], units:[], unitAll:[], nUnits:[], nNo:[],
     sel:[], selMode:false, staff:[], evUnits:[], evUnitAll:[], evNo:[],
     impMode:'名單進件', dupHit:null, qHit:null, qN:0,
     cfgLoaded:false, voidLoaded:false, voidRows:[], exFmt:'csv', dictFull:{}, dictOrder:[], curDict:'', users:[],
