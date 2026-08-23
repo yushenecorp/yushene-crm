@@ -333,6 +333,7 @@ button{cursor:pointer;border:none;background:none}
 .dup-block{background:var(--danger-bg);color:var(--danger)}
 .dup-warn{background:var(--s-new-bg);color:var(--s-new)}
 .dup-ok{background:var(--s-visit-bg);color:var(--s-visit)}
+.dup-chk{background:var(--line-2);color:var(--ink-3)}
 .bulk{position:sticky;top:52px;z-index:10;display:flex;align-items:center;gap:8px;background:var(--ink);color:#fff;padding:9px 12px;border-radius:var(--r);margin-bottom:10px;font-size:13px;font-weight:600}
 .bulk select{padding:7px 12px;border-radius:7px;border:none;font-size:13px;margin-left:auto;background:var(--card);color:var(--ink);min-width:150px;font-weight:600}
 .bulk .btn-ghost{color:#fff;border-color:rgba(255,255,255,.4)}
@@ -1890,7 +1891,7 @@ function openNew(){
     '<div class="two">'+
       '<div class="field"><label>聯絡電話 <span class="req" id="phReq">*</span>'+
         '<button type="button" class="mini-link" onclick="toggleNoPhone()">沒有電話？</button></label>'+
-        '<input type="tel" id="nPhone" placeholder="0912345678" oninput="dupCheck()"></div>'+
+        '<input type="tel" id="nPhone" placeholder="0912345678" oninput="dupCheck()" onblur="serverDup()"></div>'+
       '<div class="field"><label>客戶姓名 <span class="req">*</span></label><input type="text" id="nName" oninput="dupCheck()"></div>'+
     '</div>'+
     '<div class="field hidden" id="noPhoneBox"><label>未留電話原因 <span class="req">*</span></label>'+
@@ -2055,6 +2056,40 @@ function alsoServed(cid,name){
     }
   );
 }
+function serverDup(){
+  var box=$('dupBox'); if(!box) return;
+  var ph=basePhone(($('nPhone')||{}).value||'');
+  if(ph.length<8) return;
+  if(S.dupHit && S.dupHit.type==='main') return;   // 本地已抓到就不用再問
+  var 原=box.innerHTML;
+  box.innerHTML='<div class="dup dup-chk">查詢中…</div>';
+  api({action:'checkPhone',phone:ph}).then(function(r){
+    if(!r || !r.ok){ box.innerHTML=原; return; }
+    // 使用者可能已經改了號碼，確認還是同一支才顯示
+    if(basePhone(($('nPhone')||{}).value||'')!==ph) return;
+    if(!r.hit){ box.innerHTML='<div class="dup dup-ok">新客戶</div>'; S.dupHit=null; return; }
+    var c=r.client, 歸=c['業務歸屬']||'未指派';
+    if(r.hitType==='contact'){
+      S.dupHit={type:'contact', r:{'客戶ID':c['客戶ID'],'客戶姓名':c['客戶姓名'],'業務歸屬':歸}};
+      box.innerHTML='<div class="dup dup-warn"><b>這是既有客戶的相關聯絡人</b>'+
+        esc(c['客戶姓名']||'')+'・'+esc(歸)+
+        '<br>可以建成獨立客戶，兩邊會自動建立關聯。</div>';
+      return;
+    }
+    if(r.別人的){
+      S.dupHit={type:'other', r:{'客戶ID':c['客戶ID'],'客戶姓名':c['客戶姓名'],'業務歸屬':歸}};
+      box.innerHTML='<div class="dup dup-warn"><b>這位客戶已經是 '+esc(歸)+' 的</b>'+
+        esc(c['客戶姓名']||'')+'・'+esc(c['客戶階段']||'')+
+        '<br>如果你也接待了同一位客戶，記錄下來系統會標示撞客，由主管判定歸屬。'+
+        '<button type="button" class="btn btn-sm" onclick="alsoServed(\''+c['客戶ID']+'\',\''+esc(c['客戶姓名']||'')+'\')">我也接待了</button></div>';
+      return;
+    }
+    S.dupHit={type:'main', r:{'客戶ID':c['客戶ID'],'客戶姓名':c['客戶姓名'],'業務歸屬':歸,'客戶階段':c['客戶階段']}};
+    box.innerHTML='<div class="dup dup-block"><b>此電話已建檔</b>'+
+      esc(c['客戶姓名']||'')+'・'+esc(c['客戶階段']||'')+'・'+esc(歸)+
+      '<button type="button" class="btn btn-sm" onclick="closeModal();openDetail(\''+c['客戶ID']+'\')">開啟</button></div>';
+  }).catch(function(){ box.innerHTML=原; });
+}
 function submitNew(){
   var mode=S.newMode||'來電';
   var ph=$('nPhone').value.trim(), nm=$('nName').value.trim();
@@ -2066,6 +2101,10 @@ function submitNew(){
     if(!原因){ alert('請說明未留電話的原因'); return false; }
   }
   if(S.dupHit && S.dupHit.type==='main'){ alert('此電話已建檔，請直接開啟該客戶'); return false; }
+  if(S.dupHit && S.dupHit.type==='other'){
+    alert('這位客戶已經是 '+(S.dupHit.r['業務歸屬']||'')+' 的。\n\n如果你也接待了同一位客戶，請按「我也接待了」記錄，由主管判定歸屬。');
+    return false;
+  }
   var need=[['nArea','居住區域'],['nMedia','媒體來源'],['nMotive','購屋用途']];
   if(mode==='來人'){
     need=need.concat([['nAge','年齡層'],['nJob','客戶職業'],['nGrade','客戶等級'],
