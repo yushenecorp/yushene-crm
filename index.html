@@ -334,6 +334,10 @@ button{cursor:pointer;border:none;background:none}
 .dup-warn{background:var(--s-new-bg);color:var(--s-new)}
 .dup-ok{background:var(--s-visit-bg);color:var(--s-visit)}
 .dup-chk{background:var(--line-2);color:var(--ink-3)}
+#searchHint{margin-bottom:10px}
+#searchHint .dup{margin:0}
+.ver{font-size:10px;color:var(--ink-3);background:var(--line-2);padding:2px 7px;border-radius:10px;font-weight:600;letter-spacing:.04em;margin-left:6px;align-self:center}
+.ver-sm{font-size:10px;color:var(--ink-3);opacity:.7;margin-left:4px}
 .bulk{position:sticky;top:52px;z-index:10;display:flex;align-items:center;gap:8px;background:var(--ink);color:#fff;padding:9px 12px;border-radius:var(--r);margin-bottom:10px;font-size:13px;font-weight:600}
 .bulk select{padding:7px 12px;border-radius:7px;border:none;font-size:13px;margin-left:auto;background:var(--card);color:var(--ink);min-width:150px;font-weight:600}
 .bulk .btn-ghost{color:#fff;border-color:rgba(255,255,255,.4)}
@@ -351,7 +355,7 @@ button{cursor:pointer;border:none;background:none}
   <div class="login-card">
     <div class="mark"><span>禹盛</span></div>
     <h1>案場客戶管理</h1>
-    <div class="sub">禹盛開發股份有限公司</div>
+    <div class="sub">禹盛開發股份有限公司 <span class="ver-sm">v0906</span></div>
     <div class="field">
       <label>帳號</label>
       <input type="text" id="acc" autocomplete="username" autocapitalize="off">
@@ -382,6 +386,7 @@ button{cursor:pointer;border:none;background:none}
 <div id="main" class="hidden">
   <div class="top"><div class="top-in">
     <div class="top-case"><span id="caseName"></span><small id="whoLine"></small></div>
+    <span class="ver" title="前端版本">v0906</span>
     <div class="top-sp"></div>
     <button class="icon-btn" onclick="reload()" title="重新整理">↻</button>
     <button class="btn btn-ghost btn-sm hidden" id="switchCase" onclick="backToPicker()">換案場</button>
@@ -407,6 +412,7 @@ button{cursor:pointer;border:none;background:none}
       </div>
       <div class="filters" id="filters"></div>
       <div class="fbar hidden" id="fbar"><span id="fbarTxt"></span><button class="fclear" onclick="clearFilters()">清除篩選</button></div>
+      <div id="searchHint" class="hidden"></div>
       <div id="listBody">
         <div class="bulk hidden" id="bulkBar">
           <span id="bulkN">已選 0 筆</span>
@@ -983,7 +989,7 @@ function initState(){
   return { token:null, user:null, cases:[], caseCode:null, caseName:'', dict:{}, config:{}, rows:[],
     tab:'all', cur:null, scrollY:0, warm:false, lastCall:0, newMode:'來電', cts:[], units:[], unitAll:[], nUnits:[], nNo:[],
     sel:[], selMode:false, staff:[], evUnits:[], evUnitAll:[], evNo:[],
-    impMode:'名單進件', dupHit:null, qHit:null, qN:0,
+    impMode:'名單進件', dupHit:null, shPh:null, shTimer:null, qServerPh:null, qTimer:null, dupServerPh:null, dupServerHtml:null, dupInFlight:null, dupTimer:null, qHit:null, qN:0,
     cfgLoaded:false, voidLoaded:false, voidRows:[], exFmt:'csv', dictFull:{}, dictOrder:[], curDict:'', users:[],
     allCases:[], rev:null, rpt:null, rptRange:'today' };
 }
@@ -1100,9 +1106,31 @@ function setTab(t){
   if(!other) render();
 }
 function val(id){ var e=$(id); return e?e.value:''; }
+function searchPhoneHint(kw, n){
+  var box=$('searchHint'); if(!box) return;
+  var digits=String(kw||'').replace(/[^\d]/g,'');
+  if(n>0 || digits.length<8 || !S.user || S.user.canSeeAll){ box.classList.add('hidden'); box.innerHTML=''; return; }
+  var ph=basePhone(digits);
+  if(S.shPh===ph){ return; }   // 已查過這支
+  clearTimeout(S.shTimer);
+  S.shTimer=setTimeout(function(){
+    if(String(($('kw')||{}).value||'').replace(/[^\d]/g,'')!==digits) return;
+    S.shPh=ph;
+    box.classList.remove('hidden');
+    box.innerHTML='<div class="dup dup-chk">查詢中…</div>';
+    api({action:'checkPhone',phone:ph}).then(function(r){
+      if(String(($('kw')||{}).value||'').replace(/[^\d]/g,'')!==digits) return;
+      if(!r||!r.ok||!r.hit){ box.classList.add('hidden'); box.innerHTML=''; return; }
+      var c=r.client||{}, 歸=c['業務歸屬']||'未指派';
+      box.innerHTML='<div class="dup dup-warn"><b>此電話已是 '+esc(歸)+' 的客戶</b>'+
+        esc(c['客戶姓名']||'')+'・'+esc(c['客戶階段']||'')+
+        '<br>你只能看到自己的客戶。如果你也接待了這位客戶，請到「建客戶」輸入電話後按「我也接待了」。</div>';
+    }).catch(function(){ box.classList.add('hidden'); });
+  }, 500);
+}
 function clearFilters(){
   ['fStage','fGrade','fArea','fMedia','fDeal','fOwner'].forEach(function(id){ var e=$(id); if(e) e.value=''; });
-  $('kw').value='';
+  $('kw').value=''; S.shPh=null;
   render();
 }
 
@@ -1178,6 +1206,8 @@ function render(){
     if(show) $('fbarTxt').textContent='篩選中　'+(kwOn?'關鍵字：'+kw+(用.length?'　':''):'')+用.join('　');
   }
   $('count').textContent='共 '+out.length+' 位客戶'+(S.tab==='pend'&&S.user.canDispatch?'（點卡片勾選）':'');
+  // 業務搜電話查不到 → 自動問後端（本地清單只有自己的客，查不到不代表沒有）
+  searchPhoneHint(kw, out.length);
   var pn=S.rows.filter(function(r){ return !String(r['業務歸屬']||'').trim() && r['客戶階段']!=='結案'; }).length;
   var pe=$('pendN'); if(pe) pe.textContent = pn? ' ('+pn+')' : '';
   drawBulk();
@@ -1340,13 +1370,33 @@ function fillQuick(){
 }
 function qDup(){
   var box=$('qDupBox'); var ph=basePhone($('qPhone').value);
-  if(ph.length<8){ box.innerHTML=''; S.qHit=null; return; }
+  if(ph.length<8){ box.innerHTML=''; S.qHit=null; S.qServerPh=null; return; }
   var hit=null;
   S.rows.forEach(function(r){ if(!hit && basePhone(r['主要電話'])===ph) hit=r; });
-  S.qHit=hit;
-  box.innerHTML = hit
-    ? '<div class="dup dup-block"><b>此電話已建檔</b>'+esc(hit['客戶姓名']||'')+'・'+esc(hit['客戶階段']||'')+'・'+esc(hit['業務歸屬']||'未指派')+'</div>'
-    : '<div class="dup dup-ok">新名單</div>';
+  if(hit){
+    S.qHit=hit;
+    box.innerHTML='<div class="dup dup-block"><b>此電話已建檔</b>'+esc(hit['客戶姓名']||'')+'・'+esc(hit['客戶階段']||'')+'・'+esc(hit['業務歸屬']||'未指派')+'</div>';
+    return;
+  }
+  // 本地沒抓到 → 交給後端確認（清單可能還沒載完）
+  if(S.qServerPh===ph){ return; }
+  box.innerHTML='<div class="dup dup-chk">查詢中…</div>';
+  clearTimeout(S.qTimer);
+  S.qTimer=setTimeout(function(){
+    if(basePhone(($('qPhone')||{}).value||'')!==ph) return;
+    api({action:'checkPhone',phone:ph}).then(function(r){
+      if(basePhone(($('qPhone')||{}).value||'')!==ph) return;
+      S.qServerPh=ph;
+      if(r&&r.ok&&r.hit&&r.hitType==='main'){
+        var c=r.client||{};
+        S.qHit={'客戶ID':c['客戶ID'],'客戶姓名':c['客戶姓名'],'客戶階段':c['客戶階段'],'業務歸屬':c['業務歸屬']};
+        box.innerHTML='<div class="dup dup-block"><b>此電話已建檔</b>'+esc(c['客戶姓名']||'')+'・'+esc(c['客戶階段']||'')+'・'+esc(c['業務歸屬']||'未指派')+'</div>';
+      } else {
+        S.qHit=null;
+        box.innerHTML='<div class="dup dup-ok">新名單</div>';
+      }
+    }).catch(function(){ box.innerHTML='<div class="dup dup-warn">查重失敗，儲存時會再檢查</div>'; });
+  },500);
 }
 function qSave(){
   var nm=$('qName').value.trim(), ph=$('qPhone').value.trim();
@@ -1366,7 +1416,7 @@ function qSave(){
     $('qMsg').innerHTML='<div class="msg msg-ok">已建立 '+esc(nm)+'</div>';
     $('qCount').textContent='這次已建 '+S.qN+' 筆';
     ['qName','qPhone','qNote'].forEach(function(id){ $(id).value=''; });
-    $('qDupBox').innerHTML=''; S.qHit=null;
+    $('qDupBox').innerHTML=''; S.qHit=null; S.qServerPh=null;
     $('qName').focus();
     reload();
   });
@@ -1928,6 +1978,7 @@ function openNew(){
     function(){ return submitNew(); }
   );
   S.newMode='來電'; S.dupHit=null; S.nUnits=[]; S.nNo=[];
+  S.dupServerPh=null; S.dupServerHtml=null; S.dupInFlight=null; clearTimeout(S.dupTimer);
 }
 function pickMode(el){
   document.querySelectorAll('.seg').forEach(function(e){ e.classList.toggle('on', e===el); });
@@ -2034,7 +2085,11 @@ function dupCheck(){
       '<br>可以建成獨立客戶，兩邊會自動建立關聯。'+
       '<button type="button" class="btn btn-sm btn-ghost" onclick="closeModal();openDetail(\''+ct['客戶ID']+'\')">開啟原客戶</button></div>';
   } else {
-    box.innerHTML='<div class="dup dup-ok">新客戶</div>';
+    // 本地沒抓到 ≠ 沒有重複（業務看不到同事的客）→ 交給後端判定
+    if(S.dupServerPh===ph && S.dupServerHtml){ box.innerHTML=S.dupServerHtml; return; }
+    box.innerHTML='<div class="dup dup-chk">查詢中…</div>';
+    clearTimeout(S.dupTimer);
+    S.dupTimer=setTimeout(serverDup, 500);
   }
 }
 function alsoServed(cid,name){
@@ -2060,35 +2115,41 @@ function serverDup(){
   var box=$('dupBox'); if(!box) return;
   var ph=basePhone(($('nPhone')||{}).value||'');
   if(ph.length<8) return;
-  if(S.dupHit && S.dupHit.type==='main') return;   // 本地已抓到就不用再問
-  var 原=box.innerHTML;
+  if(S.dupHit && (S.dupHit.type==='main'||S.dupHit.type==='other'||S.dupHit.type==='contact')) return;
+  if(S.dupServerPh===ph && S.dupServerHtml){ box.innerHTML=S.dupServerHtml; return; }  // 已查過
+  if(S.dupInFlight===ph) return;   // 查詢中，別重複打
+  S.dupInFlight=ph;
   box.innerHTML='<div class="dup dup-chk">查詢中…</div>';
+  function 記(html){ S.dupServerPh=ph; S.dupServerHtml=html; box.innerHTML=html; }
   api({action:'checkPhone',phone:ph}).then(function(r){
-    if(!r || !r.ok){ box.innerHTML=原; return; }
-    // 使用者可能已經改了號碼，確認還是同一支才顯示
+    S.dupInFlight=null;
+    if(!r || !r.ok){ box.innerHTML='<div class="dup dup-warn">查重失敗，儲存前會再檢查一次</div>'; return; }
     if(basePhone(($('nPhone')||{}).value||'')!==ph) return;
-    if(!r.hit){ box.innerHTML='<div class="dup dup-ok">新客戶</div>'; S.dupHit=null; return; }
+    if(!r.hit){ 記('<div class="dup dup-ok">新客戶</div>'); S.dupHit=null; return; }
     var c=r.client, 歸=c['業務歸屬']||'未指派';
     if(r.hitType==='contact'){
       S.dupHit={type:'contact', r:{'客戶ID':c['客戶ID'],'客戶姓名':c['客戶姓名'],'業務歸屬':歸}};
-      box.innerHTML='<div class="dup dup-warn"><b>這是既有客戶的相關聯絡人</b>'+
+      記('<div class="dup dup-warn"><b>這是既有客戶的相關聯絡人</b>'+
         esc(c['客戶姓名']||'')+'・'+esc(歸)+
-        '<br>可以建成獨立客戶，兩邊會自動建立關聯。</div>';
+        '<br>可以建成獨立客戶，兩邊會自動建立關聯。</div>');
       return;
     }
     if(r.別人的){
       S.dupHit={type:'other', r:{'客戶ID':c['客戶ID'],'客戶姓名':c['客戶姓名'],'業務歸屬':歸}};
-      box.innerHTML='<div class="dup dup-warn"><b>這位客戶已經是 '+esc(歸)+' 的</b>'+
+      記('<div class="dup dup-warn"><b>這位客戶已經是 '+esc(歸)+' 的</b>'+
         esc(c['客戶姓名']||'')+'・'+esc(c['客戶階段']||'')+
         '<br>如果你也接待了同一位客戶，記錄下來系統會標示撞客，由主管判定歸屬。'+
-        '<button type="button" class="btn btn-sm" onclick="alsoServed(\''+c['客戶ID']+'\',\''+esc(c['客戶姓名']||'')+'\')">我也接待了</button></div>';
+        '<button type="button" class="btn btn-sm" onclick="alsoServed(\''+c['客戶ID']+'\',\''+esc(c['客戶姓名']||'')+'\')">我也接待了</button></div>');
       return;
     }
     S.dupHit={type:'main', r:{'客戶ID':c['客戶ID'],'客戶姓名':c['客戶姓名'],'業務歸屬':歸,'客戶階段':c['客戶階段']}};
-    box.innerHTML='<div class="dup dup-block"><b>此電話已建檔</b>'+
+    記('<div class="dup dup-block"><b>此電話已建檔</b>'+
       esc(c['客戶姓名']||'')+'・'+esc(c['客戶階段']||'')+'・'+esc(歸)+
-      '<button type="button" class="btn btn-sm" onclick="closeModal();openDetail(\''+c['客戶ID']+'\')">開啟</button></div>';
-  }).catch(function(){ box.innerHTML=原; });
+      '<button type="button" class="btn btn-sm" onclick="closeModal();openDetail(\''+c['客戶ID']+'\')">開啟</button></div>');
+  }).catch(function(){
+    S.dupInFlight=null;
+    box.innerHTML='<div class="dup dup-warn">查重失敗，儲存前會再檢查一次</div>';
+  });
 }
 function submitNew(){
   var mode=S.newMode||'來電';
@@ -2099,6 +2160,26 @@ function submitNew(){
   if(!ph){
     if(!無電話模式){ alert('請填寫電話。真的沒有電話，請點電話欄旁的「沒有電話？」說明原因'); return false; }
     if(!原因){ alert('請說明未留電話的原因'); return false; }
+  }
+  if(ph && basePhone(ph).length>=8 && S.dupServerPh!==basePhone(ph)){
+    // 後端還沒對這支號碼查過（例如打完馬上按儲存）→ 先查再送
+    var pb=basePhone(ph);
+    return api({action:'checkPhone',phone:pb}).then(function(r){
+      if(r && r.ok && r.hit){
+        var 歸=(r.client||{})['業務歸屬']||'未指派';
+        if(r.hitType==='main'){
+          alert('此電話已建檔：'+((r.client||{})['客戶姓名']||'')+'・'+歸+'\n\n請直接開啟該客戶');
+          closeModal(); openDetail((r.client||{})['客戶ID']); return;
+        }
+        if(r.別人的){
+          alert('這位客戶已經是 '+歸+' 的。\n\n如果你也接待了同一位客戶，請按「我也接待了」記錄。');
+          S.dupServerPh=pb; serverDup(); return;
+        }
+      }
+      S.dupServerPh=pb; S.dupServerHtml='';
+      var ok=$('mOk'); if(ok){ ok.disabled=false; ok.textContent='儲存'; }
+      return submitNew();
+    }).then(function(){ return 'wait'; });
   }
   if(S.dupHit && S.dupHit.type==='main'){ alert('此電話已建檔，請直接開啟該客戶'); return false; }
   if(S.dupHit && S.dupHit.type==='other'){
