@@ -124,6 +124,14 @@ button{cursor:pointer;border:none;background:none}
 }
 .c-last em{font-style:normal;color:var(--ink-3);margin-right:6px}
 .c-due{color:var(--danger);font-weight:600}
+.c-lastev{margin-top:9px;padding-top:9px;border-top:1px dashed var(--line-2)}
+.c-lh{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-3)}
+.c-lh .tag{font-size:10.5px;padding:1px 7px}
+.c-ago{margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap}
+.c-ln{margin-top:4px;font-size:12.5px;color:var(--ink-2);line-height:1.55;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.c-lb{margin-top:6px;padding:4px 9px;background:var(--brass-soft);border-radius:6px;font-size:12px;color:#6B5220;
+  display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
 
 /* ---------- 詳情 ---------- */
 .back{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--ink-3);font-weight:600;padding:12px 0}
@@ -355,7 +363,7 @@ button{cursor:pointer;border:none;background:none}
   <div class="login-card">
     <div class="mark"><span>禹盛</span></div>
     <h1>案場客戶管理</h1>
-    <div class="sub">禹盛開發股份有限公司 <span class="ver-sm">v0906</span></div>
+    <div class="sub">禹盛開發股份有限公司 <span class="ver-sm">v1015</span></div>
     <div class="field">
       <label>帳號</label>
       <input type="text" id="acc" autocomplete="username" autocapitalize="off">
@@ -386,7 +394,7 @@ button{cursor:pointer;border:none;background:none}
 <div id="main" class="hidden">
   <div class="top"><div class="top-in">
     <div class="top-case"><span id="caseName"></span><small id="whoLine"></small></div>
-    <span class="ver" title="前端版本">v0906</span>
+    <span class="ver" title="前端版本">v1015</span>
     <div class="top-sp"></div>
     <button class="icon-btn" onclick="reload()" title="重新整理">↻</button>
     <button class="btn btn-ghost btn-sm hidden" id="switchCase" onclick="backToPicker()">換案場</button>
@@ -914,12 +922,16 @@ function 顯示忙碌_(on,txt){
   if(on && txt) el.textContent=txt;
   el.classList.toggle('hidden', !on);
 }
+var 寫入動作={addClient:1,addEvent:1,updClient:1,assign:1,link:1,import:1,updEvent:1,voidClient:1,voidEvent:1,dictSave:1,cfgSave:1,userSave:1,caseAdd:1};
 function api(body){
   var 首次=!S.warm;
   var 慢=setTimeout(function(){
     顯示忙碌_(true, 首次?'首次連線需要一點時間，請稍候…':'處理中…');
   }, 2000);
-  return 送出_(Object.assign({token:S.token,case:S.caseCode},body), 2)
+  var payload=Object.assign({token:S.token,case:S.caseCode},body);
+  // 寫入動作帶一次性編號：自動重試時後端認得是同一筆，不會重複寫入
+  if(寫入動作[body.action] && !payload.rid) payload.rid=Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+  return 送出_(payload, 2)
     .then(function(j){
       clearTimeout(慢); 顯示忙碌_(false);
       S.warm=true; S.lastCall=Date.now();
@@ -1215,6 +1227,30 @@ function render(){
     : '<div class="empty">沒有符合條件的客戶</div>';
 }
 
+function 幾天前(d){
+  if(!d) return '';
+  var t=new Date(today().replace(/-/g,'/')).getTime(), x=new Date(String(d).replace(/-/g,'/')).getTime();
+  if(isNaN(x)) return '';
+  var n=Math.round((t-x)/86400000);
+  return n<=0?'今天':(n===1?'昨天':n+' 天前');
+}
+function lastBlock(r){
+  var L=r._last;
+  if(L){
+    var md=String(L.date||'').slice(5).replace('-','/');
+    return '<div class="c-lastev">'+
+      '<div class="c-lh"><span class="tag '+typeCls(L.type)+'">'+esc(L.type)+'</span>'+
+        '<span>'+esc(md)+(L.who?'・'+esc(L.who):'')+(L.result?'・'+esc(L.result):'')+'</span>'+
+        '<span class="c-ago">'+幾天前(L.date)+'</span></div>'+
+      (L.note?'<div class="c-ln">'+esc(L.note)+'</div>':'')+
+      (L.boss?'<div class="c-lb">▸ 櫃檯：'+esc(L.boss)+'</div>':'')+
+    '</div>';
+  }
+  // 沒有任何互動（例如舊名單）→ 照舊顯示歷史背景
+  if(r['歷史背景']) return '<div class="c-last"><em>'+(String(r['名單來源']||'').trim()==='舊名單'?'舊名單':'備註')+'</em>'+
+    esc(String(r['歷史背景']).slice(0,90))+'</div>';
+  return '';
+}
 function card(r){
   var st=r['客戶階段']||'未聯繫';
   var due=String(r['下次追蹤日']||''); var od = due && due<=today() && st!=='結案';
@@ -1239,7 +1275,7 @@ function card(r){
       (r['最後互動日']?'<span><b>最後</b> '+esc(r['最後互動日'])+'</span>':'')+
       (due?'<span class="'+(od?'c-due':'')+'"><b>該追</b> '+esc(due)+'</span>':'')+
     '</div>'+
-    (r['歷史背景']?'<div class="c-last"><em>'+(String(r['名單來源']||'').trim()==='舊名單'?'舊名單':'備註')+'</em>'+esc(String(r['歷史背景']).slice(0,90))+'</div>':'')+
+    lastBlock(r)+
   '</div>';
 }
 
@@ -2164,6 +2200,7 @@ function submitNew(){
   if(ph && basePhone(ph).length>=8 && S.dupServerPh!==basePhone(ph)){
     // 後端還沒對這支號碼查過（例如打完馬上按儲存）→ 先查再送
     var pb=basePhone(ph);
+    var 解鎖=function(){ var ok=$('mOk'); if(ok){ ok.disabled=false; ok.textContent='儲存'; } };
     return api({action:'checkPhone',phone:pb}).then(function(r){
       if(r && r.ok && r.hit){
         var 歸=(r.client||{})['業務歸屬']||'未指派';
@@ -2173,13 +2210,14 @@ function submitNew(){
         }
         if(r.別人的){
           alert('這位客戶已經是 '+歸+' 的。\n\n如果你也接待了同一位客戶，請按「我也接待了」記錄。');
-          S.dupServerPh=pb; serverDup(); return;
+          S.dupServerPh=pb; 解鎖(); serverDup(); return;
         }
       }
       S.dupServerPh=pb; S.dupServerHtml='';
-      var ok=$('mOk'); if(ok){ ok.disabled=false; ok.textContent='儲存'; }
-      return submitNew();
-    }).then(function(){ return 'wait'; });
+      if(submitNew()===false) 解鎖();   // 驗證沒過才解鎖；送出中維持鎖定
+    }).catch(function(){
+      解鎖(); alert('查重時連線出問題，請再按一次儲存');
+    });
   }
   if(S.dupHit && S.dupHit.type==='main'){ alert('此電話已建檔，請直接開啟該客戶'); return false; }
   if(S.dupHit && S.dupHit.type==='other'){
@@ -2218,7 +2256,15 @@ function submitNew(){
     openDetail(res.cid);
   }).catch(function(){
     closeModal();
-    alert('建立時連線出問題，請到「全部客戶」搜尋電話確認是否已建立');
+    if(!ph){ alert('建立時連線出問題。確認前請勿重新輸入，請到「全部客戶」搜尋姓名確認是否已建立'); return; }
+    alert('建立時連線出問題，系統會自動確認是否已建立，請勿重新輸入');
+    setTimeout(function(){
+      api({action:'checkPhone',phone:basePhone(ph)}).then(function(r){
+        reload();
+        if(r && r.ok && r.hit){ alert('已確認：客戶已建立成功'); openDetail(r.client['客戶ID']); }
+        else alert('已確認：沒有建立成功，請重新建立一次');
+      }).catch(function(){ alert('仍無法連線，請稍後到「全部客戶」搜尋電話確認'); });
+    }, 5000);
   });
   return 'wait';
 }
@@ -2314,8 +2360,14 @@ function modal(title,sub,body,onOk){
       '<button class="btn" id="mOk">儲存</button></div>'+
     '</div></div>';
   $('mOk').onclick=function(){
+    var b=this;
+    if(b.disabled) return;                       // 防連點
+    var 原字=b.textContent;
+    b.disabled=true; b.textContent='處理中…';
     var r=onOk();
-    if(r==='wait'){ $('mOk').disabled=true; $('mOk').textContent='儲存中…'; }
+    if(r==='wait'){ b.textContent='儲存中…'; return; }
+    if(r && typeof r.then==='function') return;  // 非同步流程自己決定何時解鎖
+    b.disabled=false; b.textContent=原字;        // 驗證沒過，解鎖讓使用者修正
   };
 }
 function closeModal(){ $('modal').innerHTML=''; }
