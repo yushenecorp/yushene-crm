@@ -372,7 +372,7 @@ button{cursor:pointer;border:none;background:none}
   <div class="login-card">
     <div class="mark"><span>禹盛</span></div>
     <h1>案場客戶管理</h1>
-    <div class="sub">禹盛開發股份有限公司 <span class="ver-sm">v1018</span></div>
+    <div class="sub">禹盛開發股份有限公司 <span class="ver-sm">v1019</span></div>
     <div class="field">
       <label>帳號</label>
       <input type="text" id="acc" autocomplete="username" autocapitalize="off">
@@ -403,7 +403,7 @@ button{cursor:pointer;border:none;background:none}
 <div id="main" class="hidden">
   <div class="top"><div class="top-in">
     <div class="top-case"><span id="caseName"></span><small id="whoLine"></small></div>
-    <span class="ver" title="前端版本">v1018</span>
+    <span class="ver" title="前端版本">v1019</span>
     <div class="top-sp"></div>
     <button class="icon-btn" onclick="reload()" title="重新整理">↻</button>
     <button class="btn btn-ghost btn-sm hidden" id="switchCase" onclick="backToPicker()">換案場</button>
@@ -1099,6 +1099,10 @@ function 重置畫面_(){
   var rb=$('revBody'); if(rb) rb.innerHTML='';
   var pb=$('rptBody'); if(pb) pb.innerHTML='';
   S.cfgLoaded=false; S.dictFull={}; S.dictOrder=[];
+  // v1019：查重快取也清掉（同一支電話在不同案場結果不同）
+  S.qHit=null; S.qServerPh=null; S.qN=0; S.shPh=null; S.dupHit=null; S.dupServerPh=null; S.dupServerHtml=null; S.dupCross='';
+  ['qDupBox','qMsg','qCount','searchHint'].forEach(function(id){ var e=$(id); if(e) e.innerHTML=''; });
+  var kw=$('kw'); if(kw) kw.value='';
   setTab('all');
 }
 
@@ -1662,15 +1666,18 @@ function dictRow(x,i,n){
     '<button type="button" class="copy-x" onclick="dictToggle('+x.row+','+(x.on?'false':'true')+')">'+(x.on?'停用':'啟用')+'</button>'+
   '</div>';
 }
+// v1019：字典用行號寫入時，一併送出畫面上看到的名稱，後端核對不符就拒絕（防止改到別的案場或別的項目）
+function 字典名_(row){ var a=(S.dictFull||{})[S.curDict]||[]; for(var i=0;i<a.length;i++) if(a[i].row===row) return a[i].name; return ''; }
 function dictMove(row,dir){
-  api({action:'dictSave',op:'move',dict:S.curDict,row:row,dir:dir}).then(function(r){
+  api({action:'dictSave',op:'move',dict:S.curDict,row:row,dir:dir,expect:字典名_(row)}).then(function(r){
     if(!r.ok){ alert(r.error||'移動失敗'); return; }
     refreshDict();
   }).catch(function(){ alert('移動時連線出問題'); });
 }
 function refreshDict(){
+  var code=S.caseCode;
   api({action:'dictList'}).then(function(r){
-    if(!r.ok) return;
+    if(!r.ok || S.caseCode!==code) return;
     S.dictFull=r.dict; S.dictOrder=r.order;
     S.dict={}; r.order.forEach(function(d){ S.dict[d]=(r.dict[d]||[]).filter(function(x){return x.on;}); });
     var box=$('dItems');
@@ -1687,13 +1694,13 @@ function dictAdd(){
   });
 }
 function dictRename(row,name){
-  api({action:'dictSave',op:'rename',dict:S.curDict,row:row,name:name}).then(function(r){
+  api({action:'dictSave',op:'rename',dict:S.curDict,row:row,name:name,expect:字典名_(row)}).then(function(r){
     if(!r.ok) alert(r.error||'改名失敗');
     refreshDict();
   });
 }
 function dictToggle(row,on){
-  api({action:'dictSave',op:'toggle',dict:S.curDict,row:row,on:on}).then(function(r){
+  api({action:'dictSave',op:'toggle',dict:S.curDict,row:row,on:on,expect:字典名_(row)}).then(function(r){
     if(!r.ok) alert(r.error||'操作失敗');
     refreshDict();
   });
@@ -1709,7 +1716,7 @@ var CFG_TIP={
 };
 function drawCase(){
   var c=S.config||{};
-  if(!S.cfgLoaded || String(c['案場代碼']||'').trim()!==String(S.caseCode||'')){
+  if(!S.cfgLoaded || !設定屬於本案_(c)){
     $('cfgCase').innerHTML='<div class="load">設定還在載入，請稍候再點一次「案場設定」</div>'; loadCfg(); return;
   }
   $('cfgCase').innerHTML='<div class="hint" style="margin:8px 0">開新案時主要就是改這一頁。開案日或籌備起始日一改，系統會自動重算全部客戶的追蹤日。</div><div class="two">'+
@@ -1728,9 +1735,15 @@ function drawCase(){
     }).join('')+'</div>'+
     '<button class="btn" onclick="saveCase()">儲存設定</button><div id="cfgMsg"></div>';
 }
+// v1018：確認目前畫面上的設定是這個案場的（有案場代碼比代碼，沒有就比案名）
+function 設定屬於本案_(c){
+  var code=String(c['案場代碼']||'').trim();
+  if(code) return code===String(S.caseCode||'');
+  return String(c['案名']||'').trim()===String(S.caseName||'').trim();
+}
 function resetTpl(k){ var e=$('cfg_'+k); if(e) e.value=預設範本[k==='籌備日報範本'?'籌備':'開案']; }
 function saveCase(){
-  if(String((S.config||{})['案場代碼']||'').trim()!==String(S.caseCode||'')){ alert('設定資料和目前案場不符，請重新整理後再存'); return; }
+  if(!設定屬於本案_(S.config||{})){ alert('設定資料和目前案場不符，請重新整理後再存'); return; }
   var data={};
   CFG_KEYS.forEach(function(k){ var e=$('cfg_'+k); if(e) data[k]=e.value; });
   $('cfgMsg').innerHTML='<div class="msg">儲存中…</div>';
@@ -1789,9 +1802,10 @@ function userAdd(){
     loadUsers();
   });
 }
+function 帳號名_(row){ var u=(S.users||[]).filter(function(x){return x.row===row;})[0]; return u?u.account:''; }
 function userToggle(row,on){
   if(!on && !confirm('確定停用這個帳號？停用後立即無法登入。')) return;
-  api({action:'userSave',op:'toggle',row:row,on:on}).then(function(r){
+  api({action:'userSave',op:'toggle',row:row,on:on,account:帳號名_(row)}).then(function(r){
     if(!r.ok){ alert(r.error||''); return; }
     loadUsers();
   });
@@ -1821,7 +1835,7 @@ function userPerm(row,acc){
       var cases='';
       if($('pAll').checked) cases='全部';
       else { var a=[]; document.querySelectorAll('.pcase:checked').forEach(function(e){a.push(e.value);}); cases=a.join(','); }
-      api({action:'userSave',op:'perm',row:row,'角色':$('pRole').value,'可存取案場':cases,
+      api({action:'userSave',op:'perm',row:row,account:帳號名_(row),'角色':$('pRole').value,'可存取案場':cases,
            '可分派名單':$('pDis').checked,'可看跨案總表':$('pCross').checked,'可管理帳號':$('pMgr').checked})
       .then(function(r){
         if(!r.ok){ alert(r.error||'儲存失敗'); return; }
@@ -1835,7 +1849,7 @@ function userPwd(row,acc){
   var pw=prompt('輸入「'+acc+'」的新密碼：');
   if(pw===null) return;
   if(pw.length<3){ alert('密碼至少 3 碼'); return; }
-  api({action:'userSave',op:'pwd',row:row,password:pw}).then(function(r){
+  api({action:'userSave',op:'pwd',row:row,password:pw,account:帳號名_(row)}).then(function(r){
     if(!r.ok){ alert(r.error||''); return; }
     alert('已重設 '+acc+' 的密碼');
   });
