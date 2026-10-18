@@ -372,7 +372,7 @@ button{cursor:pointer;border:none;background:none}
   <div class="login-card">
     <div class="mark"><span>禹盛</span></div>
     <h1>案場客戶管理</h1>
-    <div class="sub">禹盛開發股份有限公司 <span class="ver-sm">v1017</span></div>
+    <div class="sub">禹盛開發股份有限公司 <span class="ver-sm">v1018</span></div>
     <div class="field">
       <label>帳號</label>
       <input type="text" id="acc" autocomplete="username" autocapitalize="off">
@@ -403,7 +403,7 @@ button{cursor:pointer;border:none;background:none}
 <div id="main" class="hidden">
   <div class="top"><div class="top-in">
     <div class="top-case"><span id="caseName"></span><small id="whoLine"></small></div>
-    <span class="ver" title="前端版本">v1017</span>
+    <span class="ver" title="前端版本">v1018</span>
     <div class="top-sp"></div>
     <button class="icon-btn" onclick="reload()" title="重新整理">↻</button>
     <button class="btn btn-ghost btn-sm hidden" id="switchCase" onclick="backToPicker()">換案場</button>
@@ -1084,13 +1084,28 @@ function backToPicker(){
   closeModal(); closeDetail();
   S.rows=[]; S.dict={}; S.config={}; S.staff=[]; S.cur=null;
   S.sel=[]; S.selMode=false; S.cfgLoaded=false; S.rev=null; S.rpt=null;
+  S.dictFull={}; S.dictOrder=[]; S.curDict=''; S.users=[]; S.voidLoaded=false; S.voidRows=[];
   S.tab='all';
   showPicker();
+}
+// v1018：換案場時清掉上一個案場留在畫面上的設定、字典、對客資、報表，並回到「全部客戶」
+function 重置畫面_(){
+  closeModal();
+  ['cfgDict','cfgCase','cfgUser','cfgMgr','cfgExp'].forEach(function(id){
+    var e=$(id); if(e) e.innerHTML=(id==='cfgDict'?'<div class="load">載入中…</div>':'');
+  });
+  var seg=document.querySelector('#cfgView .segs .seg[data-cfg="dict"]'); if(seg) pickCfg(seg);
+  var rw=$('revWho'); if(rw) rw.innerHTML='<option value="">全部業務</option>';
+  var rb=$('revBody'); if(rb) rb.innerHTML='';
+  var pb=$('rptBody'); if(pb) pb.innerHTML='';
+  S.cfgLoaded=false; S.dictFull={}; S.dictOrder=[];
+  setTab('all');
 }
 
 // ===================== 進案場 =====================
 function enterCase(c){
   S.caseCode=c.code; S.caseName=c.name;
+  重置畫面_();
   $('login').classList.add('hidden'); $('picker').classList.add('hidden'); $('main').classList.remove('hidden');
   $('caseName').textContent=c.name;
   document.title='禹盛開發客資系統－'+c.name;
@@ -1601,7 +1616,9 @@ function pickCfg(el){
 }
 function loadCfg(){
   if(S.cfgLoaded) return;
+  var code=S.caseCode;
   api({action:'dictList'}).then(function(r){
+    if(S.caseCode!==code) return;   // v1018：回來時已經換案場了，丟掉舊資料
     if(!r.ok){ $('cfgDict').innerHTML='<div class="empty">'+esc(r.error||'載入失敗')+'</div>'; return; }
     S.dictFull=r.dict; S.dictOrder=r.order; S.config=r.config; S.cfgLoaded=true;
     drawDict();
@@ -1621,6 +1638,7 @@ function drawDict(){
   $('cfgDict').innerHTML='<div class="hint" style="margin-bottom:8px">改名與新增立即生效，不影響歷史統計。停用的選項舊資料照常顯示，只是新資料選不到。</div><div class="dlist">'+h+'</div>';
 }
 function openDict(d){
+  if(!S.cfgLoaded){ alert('字典還在載入，請稍等一下再點'); return; }
   S.curDict=d;
   var a=S.dictFull[d]||[];
   modal('編輯「'+d+'」', (CASE_DIC.indexOf(d)>=0?'案場可調 — 改這裡只影響本案場':'全公司固定 — 改了會影響跨案比較'),
@@ -1691,6 +1709,9 @@ var CFG_TIP={
 };
 function drawCase(){
   var c=S.config||{};
+  if(!S.cfgLoaded || String(c['案場代碼']||'').trim()!==String(S.caseCode||'')){
+    $('cfgCase').innerHTML='<div class="load">設定還在載入，請稍候再點一次「案場設定」</div>'; loadCfg(); return;
+  }
   $('cfgCase').innerHTML='<div class="hint" style="margin:8px 0">開新案時主要就是改這一頁。開案日或籌備起始日一改，系統會自動重算全部客戶的追蹤日。</div><div class="two">'+
     CFG_KEYS.map(function(k){
       var tpl=(k==='籌備日報範本'||k==='開案日報範本');
@@ -1709,6 +1730,7 @@ function drawCase(){
 }
 function resetTpl(k){ var e=$('cfg_'+k); if(e) e.value=預設範本[k==='籌備日報範本'?'籌備':'開案']; }
 function saveCase(){
+  if(String((S.config||{})['案場代碼']||'').trim()!==String(S.caseCode||'')){ alert('設定資料和目前案場不符，請重新整理後再存'); return; }
   var data={};
   CFG_KEYS.forEach(function(k){ var e=$('cfg_'+k); if(e) data[k]=e.value; });
   $('cfgMsg').innerHTML='<div class="msg">儲存中…</div>';
