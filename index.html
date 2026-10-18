@@ -353,6 +353,15 @@ button{cursor:pointer;border:none;background:none}
 .cbox{position:absolute;left:14px;top:15px;width:17px;height:17px;border:1.5px solid var(--line);border-radius:5px;background:var(--card)}
 .cbox.on{background:var(--ink);border-color:var(--ink)}
 .cbox.on::after{content:'✓';color:#fff;font-size:11px;position:absolute;left:3px;top:-1px}
+/* v1017 跨案紀錄 */
+.xc{background:var(--brass-soft);border:1px solid rgba(156,122,60,.25);border-radius:var(--r);padding:12px 14px;margin:12px 0}
+.xc-h{font-size:12.5px;font-weight:700;color:#6B5220;margin-bottom:6px}
+.xc-i{padding:8px 0;border-top:1px dashed rgba(156,122,60,.3);font-size:12.5px;color:var(--ink-2);line-height:1.65}
+.xc-i:first-of-type{border-top:none;padding-top:2px}
+.xc-t{color:var(--ink);font-size:13px}
+.xc-t b{font-weight:700}
+.xc-n{color:var(--ink-3);font-size:11.5px}
+.dup .xc{margin:8px 0 0}
 #impView textarea{font-family:ui-monospace,monospace;font-size:13px;line-height:1.6}
 </style>
 </head>
@@ -363,7 +372,7 @@ button{cursor:pointer;border:none;background:none}
   <div class="login-card">
     <div class="mark"><span>禹盛</span></div>
     <h1>案場客戶管理</h1>
-    <div class="sub">禹盛開發股份有限公司 <span class="ver-sm">v1015</span></div>
+    <div class="sub">禹盛開發股份有限公司 <span class="ver-sm">v1017</span></div>
     <div class="field">
       <label>帳號</label>
       <input type="text" id="acc" autocomplete="username" autocapitalize="off">
@@ -394,7 +403,7 @@ button{cursor:pointer;border:none;background:none}
 <div id="main" class="hidden">
   <div class="top"><div class="top-in">
     <div class="top-case"><span id="caseName"></span><small id="whoLine"></small></div>
-    <span class="ver" title="前端版本">v1015</span>
+    <span class="ver" title="前端版本">v1017</span>
     <div class="top-sp"></div>
     <button class="icon-btn" onclick="reload()" title="重新整理">↻</button>
     <button class="btn btn-ghost btn-sm hidden" id="switchCase" onclick="backToPicker()">換案場</button>
@@ -780,7 +789,9 @@ function drawRpt(){
     h='<div class="note-box">以下只計算<b>你自己的客戶</b>（'+esc(r.本人||'')+'）</div>'+h;
   } else {
     var lbl={today:'複製本日日報',week:'複製本週統計',month:'複製本月統計',all:'複製全案累計'}[S.rptRange]||'複製統計文字';
+    if(S.rptRange==='today' && r.籌備 && r.籌備.模式) lbl='複製籌備日報';
     h+='<button class="btn btn-sm btn-ghost cp" onclick="copyDaily()">'+lbl+'</button>';
+    h+=籌備區(r);
   }
 
   ['居住區域','媒體來源','客戶職業','年齡層','購屋用途'].forEach(function(label){
@@ -833,9 +844,59 @@ function roc(d){
   if(p.length<3) return String(d);
   return (Number(p[0])-1911)+'/'+p[1]+'/'+p[2];
 }
+// ===================== v1017：日報範本 =====================
+var 預設範本={
+  籌備:'{短日期}（{星期}）\n{案名} 預約狀況\n---------------------\n『本日總計』：{本日總計}組\n\n{本日媒體明細}\n---------------------\n『累計總計』：{累計總計}組\n\n{累計媒體明細}\n---------------------\n本月執行媒體：\n\n{媒體執行紀錄}\n---------------------\n以上報告，謝謝🙏',
+  開案:'【{案名}】{日期}(週{星期}){天氣}\n本日統計：\n網路預約{本日網路預約}組\n來人{本日來人}組，來電{本日來電}通，回籠{本日回籠}組\n訂0戶0萬\n足0戶0萬\n簽0戶0萬\n買進0戶0萬'
+};
+function 範本(kind){
+  var v=String((S.config||{})[kind==='籌備'?'籌備日報範本':'開案日報範本']||'');
+  return v.trim()?v:預設範本[kind];
+}
+function 短民國(d){ var p=String(d||'').split('-'); if(p.length<3) return String(d||''); return (Number(p[0])-1911)+'/'+Number(p[1])+'/'+Number(p[2]); }
+function 媒體行(g){
+  return ((g&&g.明細)||[]).map(function(x){
+    return x.媒體+'：'+x.n+'組'+(x.細&&x.細.length?' '+x.細.map(function(y){return y[0]+'*'+y[1];}).join(' '):'');
+  }).join('\n');
+}
+function 套範本(kind,r){
+  var d=r.日報||{}, c=S.config||{}, 開=String(c['統計起始日']||'');
+  var v={'案名':r.案名||S.caseName||'','日期':roc(d.今日),'短日期':短民國(d.今日),'星期':d.星期||'',
+    '天氣':($('rptWx')||{}).value||'','開案日':開?roc(開):'','短開案日':開?短民國(開):'',
+    '媒體執行紀錄':String(c['媒體執行紀錄']||'').replace(/\s+$/,'')};
+  ['本日','本週','全案'].forEach(function(s){
+    var n=d[s]||{};
+    v[s+'網路預約']=n['名單進件']||0; v[s+'來人']=n['來人']||0; v[s+'來電']=n['來電']||0; v[s+'回籠']=n['回訪']||0;
+  });
+  var g=r.籌備;
+  v['本日總計']=g?g.本日.總:0; v['累計總計']=g?g.累計.總:0;
+  v['本日媒體明細']=g?媒體行(g.本日):''; v['累計媒體明細']=g?媒體行(g.累計):'';
+  v['籌備起始日']=g&&g.籌備起始日?短民國(g.籌備起始日):'';
+  return 範本(kind).replace(/\{([^{}\n]+)\}/g,function(m,k){ return Object.prototype.hasOwnProperty.call(v,k)?String(v[k]):m; });
+}
+function 籌備中(){
+  var c=S.config||{}, 籌=String(c['籌備起始日']||'').trim(), 開=String(c['統計起始日']||'').trim();
+  return !!籌 && (!開 || today()<開);
+}
+function 籌備區(r){
+  var g=r.籌備; if(!g) return '';
+  var 日={}; g.本日.明細.forEach(function(x){ 日[x.媒體]=x; });
+  function 細(x){ return x&&x.細&&x.細.length?'<div class="hint" style="padding:0">'+x.細.map(function(y){return esc(y[0])+'×'+y[1];}).join('　')+'</div>':''; }
+  return '<div class="sec-h">籌備期預約狀況（'+(g.模式?'籌備中':'已開案・籌備期總計')+'）</div>'+
+    '<div class="stat"><div class="stat-c"><div class="stat-l">本日總計</div><div class="stat-v">'+g.本日.總+'</div></div>'+
+    '<div class="stat-c"><div class="stat-l">籌備累計</div><div class="stat-v">'+g.累計.總+'</div>'+
+    '<div class="stat-s">'+(g.籌備起始日?短民國(g.籌備起始日)+' 起':'')+'</div></div></div>'+
+    '<table class="rt"><thead><tr><th>媒體</th><th>本日</th><th>累計</th></tr></thead><tbody>'+
+    g.累計.明細.map(function(x){
+      var t=日[x.媒體]||{n:0};
+      return '<tr><td>'+esc(x.媒體)+細(x)+'</td><td'+(t.n?'':' class="z"')+'>'+(t.n||'—')+'</td><td'+(x.n?'':' class="z"')+'>'+(x.n||'—')+'</td></tr>';
+    }).join('')+'</tbody></table>'+
+    '<div class="hint">一位新客戶算一組（網路名單、來電、到場都算；舊名單不算）。媒體順序＝設定→選項字典的順序；「POP／金礦」這種寫法會合併成一行。</div>';
+}
 function copyDaily(){
   if(!S.rpt||!S.rpt.日報){ alert('請先載入報表'); return; }
   var r=S.rpt, dr=rngDates(), rg=S.rptRange;
+  if(rg==='today'){ cp(套範本(r.籌備&&r.籌備.模式?'籌備':'開案', r)); return; }
   var n = (rg==='today') ? r.日報.本日
         : (rg==='all')   ? r.日報.全案
         : r.組數;
@@ -1420,7 +1481,7 @@ function qDup(){
   clearTimeout(S.qTimer);
   S.qTimer=setTimeout(function(){
     if(basePhone(($('qPhone')||{}).value||'')!==ph) return;
-    api({action:'checkPhone',phone:ph}).then(function(r){
+    api({action:'checkPhone',phone:ph,cross:true}).then(function(r){
       if(basePhone(($('qPhone')||{}).value||'')!==ph) return;
       S.qServerPh=ph;
       if(r&&r.ok&&r.hit&&r.hitType==='main'){
@@ -1431,6 +1492,7 @@ function qDup(){
         S.qHit=null;
         box.innerHTML='<div class="dup dup-ok">新名單</div>';
       }
+      box.innerHTML+=crossHtml(r&&r.cross);
     }).catch(function(){ box.innerHTML='<div class="dup dup-warn">查重失敗，儲存時會再檢查</div>'; });
   },500);
 }
@@ -1518,7 +1580,7 @@ function doBulkImport(){
   $('bulkPrev').innerHTML='<div class="msg">匯入中…請稍候</div>';
   api({action:'import',mode:'舊名單',list:r.rows}).then(function(res){
     if(!res.ok){ $('bulkPrev').innerHTML='<div class="msg msg-err">匯入失敗：'+esc(res.error||'')+'</div>'; return; }
-    $('bulkPrev').innerHTML='<div class="msg msg-ok">已匯入 '+res.added+' 筆'+(res.skipped?'，略過重複或無效 '+res.skipped+' 筆':'')+'</div>';
+    $('bulkPrev').innerHTML='<div class="msg msg-ok">已匯入 '+res.added+' 筆'+(res.merged?'，'+res.merged+' 筆電話已存在、資料已補進該客戶的歷史背景':'')+(res.skipped?'，略過無效或重複 '+res.skipped+' 筆':'')+'</div>';
     $('bulkText').value=''; reload();
   });
 }
@@ -1618,27 +1680,43 @@ function dictToggle(row,on){
     refreshDict();
   });
 }
-var CFG_KEYS=['案名','建設公司','代銷公司','案件類型','總戶數','統計起始日','代理期間起','代理期間迄','戶別清單','追蹤間隔_A級','追蹤間隔_B級','追蹤間隔_C級','每人每日浮出組數'];
+var CFG_KEYS=['案名','建設公司','代銷公司','案件類型','總戶數','統計起始日','籌備起始日','代理期間起','代理期間迄','戶別清單','追蹤間隔_A級','追蹤間隔_B級','追蹤間隔_C級','每人每日浮出組數','媒體執行紀錄','籌備日報範本','開案日報範本'];
+var CFG_LABEL={'統計起始日':'開案日（統計起始日）— 空白＝還在籌備期','籌備起始日':'籌備起始日 — 有填才套用籌備期規則',
+  '戶別清單':'戶別清單（逗號分隔，可從銷控表整欄複製貼上）','媒體執行紀錄':'本月執行媒體（會接在籌備日報後面）',
+  '籌備日報範本':'籌備日報範本','開案日報範本':'開案日報範本（「複製本日日報」用）'};
+var CFG_TIP={
+  '籌備起始日':'籌備期間：新客戶一律進待派工、記錄接觸不自動掛名、不產生追蹤日。填入開案日後，從開案日那天起自動恢復。',
+  '籌備日報範本':'大括號會自動換成數字：{短日期} {日期} {星期} {天氣} {案名} {本日總計} {本日媒體明細} {累計總計} {累計媒體明細} {媒體執行紀錄} {籌備起始日}。括號以外的字可以自由改。',
+  '開案日報範本':'可用：{案名} {日期} {短日期} {星期} {天氣} {開案日}；本日／本週／全案各有 {本日網路預約} {本日來人} {本日來電} {本日回籠}（把「本日」換成「本週」或「全案」即可）。'
+};
 function drawCase(){
   var c=S.config||{};
-  $('cfgCase').innerHTML='<div class="hint" style="margin:8px 0">開新案時主要就是改這一頁。</div><div class="two">'+
+  $('cfgCase').innerHTML='<div class="hint" style="margin:8px 0">開新案時主要就是改這一頁。開案日或籌備起始日一改，系統會自動重算全部客戶的追蹤日。</div><div class="two">'+
     CFG_KEYS.map(function(k){
-      var big=(k==='戶別清單'), sel=(k==='案件類型');
-      return '<div class="field'+(big?' wide':'')+'"><label>'+k+(big?'（逗號分隔，可從銷控表整欄複製貼上）':'')+'</label>'+
-        (big?'<textarea id="cfg_'+k+'" rows="4">'+esc(c[k]||'')+'</textarea>'
+      var tpl=(k==='籌備日報範本'||k==='開案日報範本');
+      var big=(k==='戶別清單'||k==='媒體執行紀錄'||tpl), sel=(k==='案件類型'), dt=(k==='統計起始日'||k==='籌備起始日');
+      var val=c[k]==null?'':c[k];
+      if(tpl && !String(val).trim()) val=預設範本[k==='籌備日報範本'?'籌備':'開案'];
+      var rows=tpl?12:(k==='媒體執行紀錄'?8:4);
+      return '<div class="field'+(big?' wide':'')+'"><label>'+(CFG_LABEL[k]||k)+
+        (tpl?'<button type="button" class="mini-link" onclick="resetTpl(\''+k+'\')">還原預設</button>':'')+'</label>'+
+        (big?'<textarea id="cfg_'+k+'" rows="'+rows+'">'+esc(val)+'</textarea>'
             :sel?'<select id="cfg_'+k+'">'+opts('案件類型',c[k]||'','')+'</select>'
-            :'<input type="text" id="cfg_'+k+'" value="'+esc(c[k]||'')+'">')+'</div>';
+            :'<input type="'+(dt?'date':'text')+'" id="cfg_'+k+'" value="'+esc(val)+'">')+
+        (CFG_TIP[k]?'<div class="hint">'+esc(CFG_TIP[k])+'</div>':'')+'</div>';
     }).join('')+'</div>'+
     '<button class="btn" onclick="saveCase()">儲存設定</button><div id="cfgMsg"></div>';
 }
+function resetTpl(k){ var e=$('cfg_'+k); if(e) e.value=預設範本[k==='籌備日報範本'?'籌備':'開案']; }
 function saveCase(){
   var data={};
   CFG_KEYS.forEach(function(k){ var e=$('cfg_'+k); if(e) data[k]=e.value; });
   $('cfgMsg').innerHTML='<div class="msg">儲存中…</div>';
   api({action:'cfgSave',data:data}).then(function(r){
     if(!r.ok){ $('cfgMsg').innerHTML='<div class="msg msg-err">'+esc(r.error||'')+'</div>'; return; }
-    S.config=data;
-    $('cfgMsg').innerHTML='<div class="msg msg-ok">已儲存 '+r.updated+' 項</div>';
+    S.config=r.config||data;
+    $('cfgMsg').innerHTML='<div class="msg msg-ok">已儲存 '+r.updated+' 項'+
+      (r.recalc?'，並依新的開案日重新計算 '+r.recalc+' 位客戶的追蹤日':'')+'</div>';
   });
 }
 function loadUsers(){
@@ -1790,6 +1868,7 @@ function drawDetail(r){
       (S.user.canDispatch?'<button class="btn btn-ghost" onclick="openAssign()">改派</button>':'')+
       (S.user.canDispatch?'<button class="btn btn-ghost btn-danger" onclick="voidClient()">'+(廢?'還原':'作廢')+'</button>':'')+
     '</div>'+
+    '<div id="crossBox"></div>'+
     (輪廓?'<div class="sec"><div class="sec-h">客戶輪廓</div><div class="grid">'+輪廓+'</div></div>':'')+
     (需求?'<div class="sec"><div class="sec-h">需求</div><div class="grid">'+需求+'</div></div>':'')+
     (追蹤?'<div class="sec"><div class="sec-h">追蹤狀態</div><div class="grid">'+追蹤+'</div></div>':'')+
@@ -1797,6 +1876,33 @@ function drawDetail(r){
     '<div class="sec"><div class="sec-h">互動紀錄（'+evs.length+'）</div>'+
       (evs.length?'<div class="tl">'+evs.map(evRow).join('')+'</div>':'<div class="empty">還沒有任何互動紀錄</div>')+
     '</div>';
+  loadCross(c['客戶ID']);
+}
+// ===================== v1017：跨案紀錄 =====================
+function loadCross(cid){
+  var box=$('crossBox'); if(!box||!cid) return;
+  api({action:'crossCase',cid:cid}).then(function(r){
+    var b=$('crossBox');
+    if(!b || !S.cur || String(S.cur.client['客戶ID'])!==String(cid)) return;
+    b.innerHTML=(r&&r.ok)?crossHtml(r.list):'';
+  }).catch(function(){});
+}
+function crossHtml(list){
+  if(!list||!list.length) return '';
+  return '<div class="xc"><div class="xc-h">📁 此客戶在其他案場的紀錄（'+list.length+'）</div>'+list.map(function(x){
+    var 期=x.首?(短民國(x.首)+(x.末&&x.末!==x.首?'～'+短民國(x.末):'')):'';
+    var 輪=[x.職業&&('職業：'+x.職業), x.區域&&('居住：'+x.區域), x.預算&&('預算：'+x.預算), x.房數&&('需求：'+x.房數)].filter(Boolean);
+    var 態=[x.階段,x.等級,x.成交].filter(Boolean);
+    return '<div class="xc-i">'+
+      '<div class="xc-t"><b>'+esc(x.案名)+'</b>｜業務：'+esc(x.業務||'未指派')+(期?'｜'+esc(期):'')+'</div>'+
+      (輪.length?'<div>'+輪.map(esc).join('　')+'</div>':'')+
+      '<div>到場 '+x.到場+' 次'+(x.到場日&&x.到場日.length?'（'+x.到場日.map(短民國).join('、')+'）':'')+'｜聯繫 '+x.聯繫+' 次'+
+        (x.戶別?'｜介紹戶別：'+esc(x.戶別):'')+'</div>'+
+      '<div>狀態：'+(態.length?態.map(esc).join('・'):'—')+(x.未購?'｜未購因素：'+esc(x.未購):'')+
+        (x.最後結果?'｜最後聯繫：'+esc(x.最後結果):'')+'</div>'+
+      (x.對應==='聯絡人'?'<div class="xc-n">※ 這支電話是該客戶的相關聯絡人</div>':'')+
+    '</div>';
+  }).join('')+'</div>';
 }
 function canEditEv(e){
   if(S.user.role!=='業務') return true;
@@ -1968,7 +2074,7 @@ function tapEvNo(n){
 
 // ===================== 建客戶 =====================
 function openNew(){
-  modal('建立客戶','這是你接到的客戶，建立後會掛在你名下',
+  modal('建立客戶',籌備中()?'籌備期：建立後先進「待派工」，開案時再分派':'這是你接到的客戶，建立後會掛在你名下',
     '<div class="field"><label>這位客戶怎麼來的？ <span class="req">*</span></label>'+
       '<div class="segs">'+
         '<button class="seg on" data-mode="來電" onclick="pickMode(this)">打電話進來</button>'+
@@ -2014,7 +2120,7 @@ function openNew(){
     function(){ return submitNew(); }
   );
   S.newMode='來電'; S.dupHit=null; S.nUnits=[]; S.nNo=[];
-  S.dupServerPh=null; S.dupServerHtml=null; S.dupInFlight=null; clearTimeout(S.dupTimer);
+  S.dupServerPh=null; S.dupServerHtml=null; S.dupInFlight=null; S.dupCross=''; clearTimeout(S.dupTimer);
 }
 function pickMode(el){
   document.querySelectorAll('.seg').forEach(function(e){ e.classList.toggle('on', e===el); });
@@ -2156,9 +2262,10 @@ function serverDup(){
   if(S.dupInFlight===ph) return;   // 查詢中，別重複打
   S.dupInFlight=ph;
   box.innerHTML='<div class="dup dup-chk">查詢中…</div>';
-  function 記(html){ S.dupServerPh=ph; S.dupServerHtml=html; box.innerHTML=html; }
-  api({action:'checkPhone',phone:ph}).then(function(r){
+  function 記(html){ html+=(S.dupCross||''); S.dupServerPh=ph; S.dupServerHtml=html; box.innerHTML=html; }
+  api({action:'checkPhone',phone:ph,cross:true}).then(function(r){
     S.dupInFlight=null;
+    S.dupCross=crossHtml(r&&r.cross);
     if(!r || !r.ok){ box.innerHTML='<div class="dup dup-warn">查重失敗，儲存前會再檢查一次</div>'; return; }
     if(basePhone(($('nPhone')||{}).value||'')!==ph) return;
     if(!r.hit){ 記('<div class="dup dup-ok">新客戶</div>'); S.dupHit=null; return; }
